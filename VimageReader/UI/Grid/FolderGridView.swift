@@ -44,6 +44,8 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
 
     private var isSelecting = false
     private var reloadToken = 0
+    /// Count line shown at the right of each section header.
+    private var sectionDetails: [Section: String] = [:]
     private var folders: [FolderEntry] = []
     private var groups: [MediaGroup] = []
     private var collectionView: UICollectionView!
@@ -87,13 +89,13 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
         let headerRegistration = UICollectionView.SupplementaryRegistration<SectionHeaderView>(
             elementKind: UICollectionView.elementKindSectionHeader
         ) { [weak self] header, _, indexPath in
-            guard let section = self?.dataSource?.sectionIdentifier(for: indexPath.section) else {
-                header.title = ""
+            guard let self, let section = self.dataSource?.sectionIdentifier(for: indexPath.section) else {
+                header.configure(title: "", detail: nil)
                 return
             }
             switch section {
-            case .folders: header.title = "Folders"
-            case .media(let title): header.title = title
+            case .folders: header.configure(title: "Folders", detail: self.sectionDetails[section])
+            case .media(let title): header.configure(title: title, detail: self.sectionDetails[section])
             }
         }
         dataSource.supplementaryViewProvider = { collectionView, _, indexPath in
@@ -117,18 +119,32 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
         cancelAllPrefetching()
 
         var snapshot = NSDiffableDataSourceSnapshot<Section, Row>()
+        var details: [Section: String] = [:]
         if !folders.isEmpty {
             snapshot.appendSections([.folders])
             snapshot.appendItems(folders.map(Row.folder), toSection: .folders)
+            details[.folders] = folders.count == 1 ? "1 Folder" : "\(folders.count) Folders"
         }
         for group in groups where !group.items.isEmpty {
             let section = Section.media(group.title)
             snapshot.appendSections([section])
             snapshot.appendItems(group.items.map(Row.media), toSection: section)
+            details[section] = Self.countText(for: group.items)
         }
+        sectionDetails = details
         dataSource?.apply(snapshot, animatingDifferences: false)
         // Deleted items drop out of the selection along with the grid.
         if isSelecting { reportSelection() }
+    }
+
+    /// "12 Photos, 3 Videos", like the counts in Photos.
+    private static func countText(for items: [MediaItem]) -> String {
+        let videos = items.filter { $0.kind == .video }.count
+        let photos = items.count - videos
+        var parts: [String] = []
+        if photos > 0 { parts.append(photos == 1 ? "1 Photo" : "\(photos) Photos") }
+        if videos > 0 { parts.append(videos == 1 ? "1 Video" : "\(videos) Videos") }
+        return parts.joined(separator: ", ")
     }
 
     /// Cells whose thumbnails or covers failed while the drive was away try again.
@@ -221,8 +237,9 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
 
         let section = NSCollectionLayoutSection(group: group)
         section.interGroupSpacing = 12
-        section.contentInsets = .init(top: 4, leading: inset, bottom: 24, trailing: inset)
-        section.boundarySupplementaryItems = [makeHeader()]
+        section.contentInsets = .init(top: 4, leading: inset, bottom: 20, trailing: inset)
+        // The section's own side insets already line the header up with the cards.
+        section.boundarySupplementaryItems = [makeHeader(height: 44, sideInset: 0)]
         return section
     }
 
@@ -248,19 +265,22 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
         let section = NSCollectionLayoutSection(group: group)
         section.interGroupSpacing = spacing
         if hasHeader {
-            section.boundarySupplementaryItems = [makeHeader()]
-            section.contentInsets = .init(top: 0, leading: 0, bottom: 16, trailing: 0)
+            // The grid runs edge to edge, so the header text gets its own margin.
+            section.boundarySupplementaryItems = [makeHeader(height: 40, sideInset: 16)]
+            section.contentInsets = .init(top: 0, leading: 0, bottom: 14, trailing: 0)
         }
         return section
     }
 
-    private static func makeHeader() -> NSCollectionLayoutBoundarySupplementaryItem {
+    /// Plain headers that scroll with the grid, like Photos. Pinned headers with a solid
+    /// background sat under the translucent navigation bar as opaque strips.
+    private static func makeHeader(height: CGFloat, sideInset: CGFloat) -> NSCollectionLayoutBoundarySupplementaryItem {
         let header = NSCollectionLayoutBoundarySupplementaryItem(
-            layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(40)),
+            layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(height)),
             elementKind: UICollectionView.elementKindSectionHeader,
             alignment: .top
         )
-        header.pinToVisibleBounds = true
+        header.contentInsets = .init(top: 0, leading: sideInset, bottom: 0, trailing: sideInset)
         return header
     }
 
@@ -312,29 +332,45 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
     }
 }
 
-/// Sticky day header above a run of photos, like Photos.
+/// Section title with a count on the right, drawn straight on the page like Photos:
+/// no background, and it scrolls away with its section.
 final class SectionHeaderView: UICollectionReusableView {
-    private let label = UILabel()
+    private let titleLabel = UILabel()
+    private let detailLabel = UILabel()
 
-    var title: String = "" {
-        didSet { label.text = title }
+    func configure(title: String, detail: String?) {
+        titleLabel.text = title
+        detailLabel.text = detail
     }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
 
-        backgroundColor = .systemBackground
+        backgroundColor = .clear
 
-        label.font = .preferredFont(forTextStyle: .headline)
-        label.textColor = .label
-        label.lineBreakMode = .byTruncatingTail
-        label.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(label)
+        titleLabel.font = .preferredFont(forTextStyle: .headline)
+        titleLabel.adjustsFontForContentSizeCategory = true
+        titleLabel.textColor = .label
+        titleLabel.lineBreakMode = .byTruncatingTail
+        titleLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(titleLabel)
+
+        detailLabel.font = .preferredFont(forTextStyle: .footnote)
+        detailLabel.adjustsFontForContentSizeCategory = true
+        detailLabel.textColor = .secondaryLabel
+        detailLabel.textAlignment = .right
+        detailLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        detailLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(detailLabel)
 
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            label.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -16),
-            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -6),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+
+            detailLabel.leadingAnchor.constraint(greaterThanOrEqualTo: titleLabel.trailingAnchor, constant: 12),
+            detailLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
+            detailLabel.firstBaselineAnchor.constraint(equalTo: titleLabel.firstBaselineAnchor),
         ])
     }
 
