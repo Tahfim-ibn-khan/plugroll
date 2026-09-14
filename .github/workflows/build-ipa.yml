@@ -1,0 +1,71 @@
+name: Build unsigned IPA
+
+# Builds the app on GitHub's Macs so it does not have to be built here, and
+# publishes an unsigned .ipa. SideStore (or AltStore) signs it on the phone with
+# your own Apple ID, so no signing certificate is ever needed in CI.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos || true
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate the Xcode project
+        run: xcodegen generate
+
+      - name: Build for device, unsigned
+        run: |
+          xcodebuild \
+            -project Plugroll.xcodeproj \
+            -target Plugroll \
+            -configuration Release \
+            -sdk iphoneos \
+            CONFIGURATION_BUILD_DIR="$PWD/build" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            build
+
+      - name: Package as .ipa
+        run: |
+          mkdir -p Payload
+          cp -R build/Plugroll.app Payload/Plugroll.app
+          zip -qry Plugroll.ipa Payload
+          ls -lh Plugroll.ipa
+
+      - name: Upload as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Plugroll-ipa
+          path: Plugroll.ipa
+          if-no-files-found: error
+
+      # One rolling release, so the download link on the phone never changes.
+      - name: Publish to the "latest" release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest Plugroll.ipa \
+            --title "Latest build" \
+            --notes "Unsigned build of ${{ github.sha }}. Install with SideStore or AltStore; they sign it with your Apple ID."

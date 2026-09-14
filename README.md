@@ -1,11 +1,11 @@
-# vimage
+# Plugroll
 
 A personal iPhone app for browsing photos and videos on an external SSD, styled like the Photos app.
 
 ## Run it on your iPhone
 1. Install **Xcode** from the Mac App Store and open it once so it can finish setting up.
-2. Open `VimageReader.xcodeproj`.
-3. In Xcode, click the **VimageReader** target, then **Signing & Capabilities**. Under **Team**, add and pick your Apple ID.
+2. Open `Plugroll.xcodeproj`.
+3. In Xcode, click the **Plugroll** target, then **Signing & Capabilities**. Under **Team**, add and pick your Apple ID.
    If Xcode says the bundle ID is taken, change `com.tahfim.vimagereader` to something unique.
 4. Plug in the iPhone and select it as the run destination at the top of the window. On the phone, turn on **Settings → Privacy & Security → Developer Mode** (the phone restarts).
 5. Press **Run** (⌘R). The first time only, trust your certificate on the phone: **Settings → General → VPN & Device Management**.
@@ -30,6 +30,21 @@ Plug in the SSD, tap **Open SSD**, and pick the drive (or any folder on it).
   double-tap a side), mute and AirPlay. Controls hide on their own while playing.
 
 ## Project file
-`VimageReader.xcodeproj` is generated from `project.yml` and lists every source file by
+`Plugroll.xcodeproj` is generated from `project.yml` and lists every source file by
 name. After adding or removing files, run `xcodegen generate` (`brew install xcodegen`) —
 otherwise a new file will not be compiled.
+
+## Building without Xcode
+
+`.github/workflows/build-ipa.yml` builds the app on GitHub's Macs and publishes an
+unsigned `.ipa` to a rolling release tagged `latest`. Nothing is signed in CI — a free
+Apple ID cannot sign there anyway. **SideStore** or **AltStore** signs the `.ipa` on the
+phone with your Apple ID, which keeps the usual free-account limits: the app stops
+opening after 7 days unless it is refreshed, and three sideloaded apps at a time.
+
+1. Push this repository to GitHub. Every push to `main` builds it.
+2. On the phone, open the repository's **Releases** page and download `Plugroll.ipa`.
+3. Open it in SideStore and let it install.
+
+macOS runner minutes are free on a public repository. On a private one they bill at 10x
+against the 2,000 free minutes a month, which is roughly 40 builds of this app.
