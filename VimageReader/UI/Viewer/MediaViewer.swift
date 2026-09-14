@@ -8,6 +8,10 @@ struct MediaViewer: View {
 
     @State private var currentID: URL?
     @State private var chromeVisible = true
+    /// Player for the current page when it is a video; nil on photo pages.
+    @State private var player: PlayerModel?
+    /// Bumped on every control touch to restart the auto-hide countdown.
+    @State private var controlsActivity = 0
     @Environment(\.dismiss) private var dismiss
 
     init(items: [MediaItem], start: MediaItem) {
@@ -20,7 +24,7 @@ struct MediaViewer: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             Color.black.ignoresSafeArea()
 
             ScrollView(.horizontal) {
@@ -29,6 +33,7 @@ struct MediaViewer: View {
                         MediaPage(
                             item: item,
                             isActive: item.id == currentID,
+                            player: item.id == currentID ? player : nil,
                             onSingleTap: { toggleChrome() }
                         )
                         .containerRelativeFrame([.horizontal, .vertical])
@@ -43,17 +48,38 @@ struct MediaViewer: View {
             .ignoresSafeArea()
 
             if chromeVisible {
-                topBar.transition(.opacity)
+                VStack(spacing: 0) {
+                    topBar
+                    Spacer(minLength: 0)
+                    if let player {
+                        VideoControls(player: player, onInteraction: { controlsActivity += 1 })
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 8)
+                    }
+                }
+                .transition(.opacity)
             }
         }
         .statusBarHidden()
         .persistentSystemOverlays(chromeVisible ? .automatic : .hidden)
-        .onChange(of: currentID) { _, _ in
-            // Videos carry their own controls and no tap target of their own,
-            // so make sure the close button is back when one comes on screen.
-            if let index = currentIndex, items[index].kind == .video, !chromeVisible {
-                toggleChrome()
-            }
+        .onChange(of: currentID, initial: true) { _, _ in
+            updatePlayer()
+        }
+        .onDisappear {
+            player?.tearDown()
+            player = nil
+        }
+        .task(id: AutoHideKey(
+            chromeVisible: chromeVisible,
+            isPlaying: player?.isPlaying ?? false,
+            isScrubbing: player?.isScrubbing ?? false,
+            activity: controlsActivity
+        )) {
+            // While a video plays, controls fade away after a few quiet seconds, like Photos.
+            guard chromeVisible, let player, player.isPlaying, !player.isScrubbing else { return }
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.25)) { chromeVisible = false }
         }
     }
 
@@ -61,6 +87,21 @@ struct MediaViewer: View {
         withAnimation(.easeInOut(duration: 0.2)) {
             chromeVisible.toggle()
         }
+    }
+
+    /// Keeps exactly one player: for the current page if it is a video, otherwise none.
+    private func updatePlayer() {
+        guard let index = currentIndex, items[index].kind == .video else {
+            player?.tearDown()
+            player = nil
+            return
+        }
+        let item = items[index]
+        guard player?.url != item.url else { return }
+        player?.tearDown()
+        let model = PlayerModel(url: item.url, knownDuration: VideoDurationService.shared.cachedDuration(for: item))
+        player = model
+        model.play()
     }
 
     private var topBar: some View {
@@ -101,15 +142,23 @@ struct MediaViewer: View {
     }
 }
 
+private struct AutoHideKey: Equatable {
+    let chromeVisible: Bool
+    let isPlaying: Bool
+    let isScrubbing: Bool
+    let activity: Int
+}
+
 private struct MediaPage: View {
     let item: MediaItem
     let isActive: Bool
+    let player: PlayerModel?
     let onSingleTap: () -> Void
 
     var body: some View {
         switch item.kind {
         case .photo: PhotoPage(item: item, isActive: isActive, onSingleTap: onSingleTap)
-        case .video: VideoPage(item: item, isActive: isActive)
+        case .video: VideoPage(item: item, player: player, onSingleTap: onSingleTap)
         }
     }
 }
@@ -146,28 +195,77 @@ private struct PhotoPage: View {
 
 private struct VideoPage: View {
     let item: MediaItem
-    let isActive: Bool
-    @State private var player: AVPlayer?
+    /// Set only while this page is the current one.
+    let player: PlayerModel?
+    let onSingleTap: () -> Void
+
+    @State private var thumbnail: UIImage?
+    @State private var skipFeedback: SkipFeedback?
+
+    private struct SkipFeedback: Equatable {
+        let forward: Bool
+        let id = UUID()
+    }
 
     var body: some View {
-        ZStack {
-            if let player {
-                VideoPlayer(player: player)
-            } else if let thumbnail = ThumbnailService.shared.cachedThumbnail(for: item) {
-                Image(uiImage: thumbnail).resizable().scaledToFit()
+        GeometryReader { geometry in
+            ZStack {
+                // The first frame stands in until the player draws, so pages never flash black.
+                if let thumbnail = thumbnail ?? ThumbnailService.shared.cachedThumbnail(for: item) {
+                    Image(uiImage: thumbnail)
+                        .resizable()
+                        .scaledToFit()
+                }
+                if let player {
+                    PlayerLayerView(player: player.player)
+                }
+                if let skipFeedback {
+                    skipBadge(forward: skipFeedback.forward, width: geometry.size.width)
+                        .transition(.opacity)
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2) { location in
+                guard let player else { return }
+                let forward = location.x > geometry.size.width / 2
+                player.skip(by: forward ? 10 : -10)
+                showSkipFeedback(forward: forward)
+            }
+            .onTapGesture(count: 1) {
+                onSingleTap()
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear {
-            if player == nil { player = AVPlayer(url: item.url) }
-            if isActive { player?.play() }
+        .task(id: item.id) {
+            if thumbnail == nil {
+                thumbnail = await ThumbnailService.shared.thumbnail(for: item)
+            }
         }
-        .onDisappear {
-            player?.pause()
-            player = nil
+    }
+
+    private func skipBadge(forward: Bool, width: CGFloat) -> some View {
+        HStack {
+            if forward { Spacer() }
+            Label("10", systemImage: forward ? "goforward" : "gobackward")
+                .font(.headline)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial, in: Capsule())
+                .environment(\.colorScheme, .dark)
+                .padding(.horizontal, width * 0.12)
+            if !forward { Spacer() }
         }
-        .onChange(of: isActive) { _, active in
-            if active { player?.play() } else { player?.pause() }
+        .allowsHitTesting(false)
+    }
+
+    private func showSkipFeedback(forward: Bool) {
+        let feedback = SkipFeedback(forward: forward)
+        withAnimation(.easeOut(duration: 0.15)) { skipFeedback = feedback }
+        Task {
+            try? await Task.sleep(for: .milliseconds(700))
+            guard skipFeedback == feedback else { return }
+            withAnimation(.easeIn(duration: 0.25)) { skipFeedback = nil }
         }
     }
 }

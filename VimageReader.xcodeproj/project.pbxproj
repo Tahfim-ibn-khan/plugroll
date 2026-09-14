@@ -9,8 +9,11 @@
 /* Begin PBXBuildFile section */
 		3B9A86AF635F6F1B4B38CFD2 /* FolderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF585284AFA18D6E39166D3C /* FolderScreen.swift */; };
 		42C3B3E89D58F680912681F0 /* AsyncLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298DB70A6EFDF57D07B78742 /* AsyncLimiter.swift */; };
+		74A1B1BA99466F33FC59B0FA /* VideoControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFB1DD4A3A9C5011043BA452 /* VideoControls.swift */; };
 		962D303A60A1C59A51FDDDEE /* FolderScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270E374803B65EB94EE814CE /* FolderScanner.swift */; };
 		9A53846B7FB3096576C01B8B /* ThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C052D9189C722BF3608D79 /* ThumbnailService.swift */; };
+		A9408EA2F096BCBEC23873ED /* PlayerLayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DFCAD4761374C2B7FBB06C5 /* PlayerLayerView.swift */; };
+		AAC4D26371F6BB7C449F8030 /* PlayerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B079E38E28F6825B8D37DC6 /* PlayerModel.swift */; };
 		B9EC5444DCD93EA744FC8384 /* MediaViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072208E298EAE9AB425C3B51 /* MediaViewer.swift */; };
 		C4EF38DD5EAB86750A21A74A /* FolderCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856E46546220E38032E14294 /* FolderCell.swift */; };
 		C9EFD0DE9E7504630B3E7212 /* MediaCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 579A3968CFF20B82BB3A8FBB /* MediaCell.swift */; };
@@ -32,11 +35,14 @@
 		533CEFB25951B80248EC8EBD /* MediaItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaItem.swift; sourceTree = "<group>"; };
 		579A3968CFF20B82BB3A8FBB /* MediaCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaCell.swift; sourceTree = "<group>"; };
 		856E46546220E38032E14294 /* FolderCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderCell.swift; sourceTree = "<group>"; };
+		9B079E38E28F6825B8D37DC6 /* PlayerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerModel.swift; sourceTree = "<group>"; };
 		9BF344B345BD616F1981A19B /* VideoDurationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDurationService.swift; sourceTree = "<group>"; };
+		9DFCAD4761374C2B7FBB06C5 /* PlayerLayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerLayerView.swift; sourceTree = "<group>"; };
 		AF585284AFA18D6E39166D3C /* FolderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderScreen.swift; sourceTree = "<group>"; };
 		B15948519903002BA216EA5E /* VimageReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VimageReaderApp.swift; sourceTree = "<group>"; };
 		C995C7F850A8D529CF5BFF04 /* VimageReader.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = VimageReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4C4555862858F5069AB8750 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		FFB1DD4A3A9C5011043BA452 /* VideoControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoControls.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -71,6 +77,9 @@
 			isa = PBXGroup;
 			children = (
 				072208E298EAE9AB425C3B51 /* MediaViewer.swift */,
+				9DFCAD4761374C2B7FBB06C5 /* PlayerLayerView.swift */,
+				9B079E38E28F6825B8D37DC6 /* PlayerModel.swift */,
+				FFB1DD4A3A9C5011043BA452 /* VideoControls.swift */,
 			);
 			path = Viewer;
 			sourceTree = "<group>";
@@ -200,8 +209,11 @@
 				C9EFD0DE9E7504630B3E7212 /* MediaCell.swift in Sources */,
 				E590399F53E02EA2420D4B9C /* MediaItem.swift in Sources */,
 				B9EC5444DCD93EA744FC8384 /* MediaViewer.swift in Sources */,
+				A9408EA2F096BCBEC23873ED /* PlayerLayerView.swift in Sources */,
+				AAC4D26371F6BB7C449F8030 /* PlayerModel.swift in Sources */,
 				E989611EB12431F25E778F91 /* RootView.swift in Sources */,
 				9A53846B7FB3096576C01B8B /* ThumbnailService.swift in Sources */,
+				74A1B1BA99466F33FC59B0FA /* VideoControls.swift in Sources */,
 				F302A9AA78C7AACEE29D6892 /* VideoDurationService.swift in Sources */,
 				F4A1D9B1C3F69C2E771DAC34 /* VimageReaderApp.swift in Sources */,
 			);
