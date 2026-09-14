@@ -1,4 +1,4 @@
-name: VimageReader
+name: Plugroll
 options:
   bundleIdPrefix: com.tahfim
   deploymentTarget:
@@ -10,11 +10,11 @@ settings:
     MARKETING_VERSION: "0.1"
     CURRENT_PROJECT_VERSION: "1"
 targets:
-  VimageReader:
+  Plugroll:
     type: application
     platform: iOS
     sources:
-      - path: VimageReader
+      - path: Plugroll
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tahfim.vimagereader

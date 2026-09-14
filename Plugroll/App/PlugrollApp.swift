@@ -2,7 +2,7 @@ import AVFoundation
 import SwiftUI
 
 @main
-struct VimageReaderApp: App {
+struct PlugrollApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var appState = AppState()
 
