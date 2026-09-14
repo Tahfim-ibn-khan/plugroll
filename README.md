@@ -15,10 +15,19 @@ A personal iPhone app for browsing photos and videos on an external SSD, styled 
 Plug in the SSD, tap **Open SSD**, and pick the drive (or any folder on it).
 
 - Folders show as album cards with a cover; photos and videos fill a Photos-style grid.
-- The sort button (top right) orders by newest, oldest, name or size, and is remembered
-  between launches. The date orders group the grid under sticky day headers.
-- Tap a photo for the full-screen viewer: swipe between items, pinch or double-tap to
-  zoom, drag to pan while zoomed, and tap once to hide the top bar.
+  Videos show their length in the corner.
+- The sort button (top right) orders photos and videos by newest, oldest, name or size,
+  and folders by name or date. Both are remembered between launches. The date orders
+  group the grid under sticky day headers.
+- Search by name at the top: **This Folder** filters instantly, **All Subfolders** searches
+  everything below the current folder.
+- **Select** lets you tap or drag across items, then Share, Save to Photos or Delete.
+  Delete removes files from the drive permanently.
+- Tap an item for the full-screen viewer: swipe between items, pinch or double-tap photos
+  to zoom, and tap once to hide the bars. The bottom bar has Share, Save and Delete; the
+  top-right button rotates the screen, even with Portrait Lock on.
+- Videos play in a Photos-style player: scrub bar, play/pause, skip 10 seconds (or
+  double-tap a side), mute and AirPlay. Controls hide on their own while playing.
 
 ## Project file
 `VimageReader.xcodeproj` is generated from `project.yml` and lists every source file by
