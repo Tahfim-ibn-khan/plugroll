@@ -69,7 +69,7 @@ final class MediaActions {
             guard status == .authorized || status == .limited else {
                 failure = Failure(
                     title: "No Access to Photos",
-                    message: "Allow vimage to add photos in Settings → Apps → vimage → Photos."
+                    message: "Allow Plugroll to add photos in Settings → Apps → Plugroll → Photos."
                 )
                 return
             }

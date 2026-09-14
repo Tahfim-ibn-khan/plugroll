@@ -20,7 +20,7 @@ enum DriveError: LocalizedError {
 /// a timeout, and while the drive is known to be gone new work fails immediately.
 enum DriveIO {
     private static let queue = DispatchQueue(
-        label: "vimage.drive-io",
+        label: "plugroll.drive-io",
         qos: .userInitiated,
         attributes: .concurrent
     )
