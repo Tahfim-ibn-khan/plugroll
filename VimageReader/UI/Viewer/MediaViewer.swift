@@ -16,6 +16,7 @@ struct MediaViewer: View {
     @State private var controlsActivity = 0
     @State private var actions = MediaActions()
     @State private var confirmingDelete = false
+    @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
     init(items: [MediaItem], start: MediaItem, onDeleted: @escaping ([MediaItem]) -> Void = { _ in }) {
@@ -70,6 +71,21 @@ struct MediaViewer: View {
                 }
                 .transition(.opacity)
             }
+
+            if !appState.isDriveConnected {
+                VStack {
+                    Spacer()
+                    DriveDisconnectedBanner()
+                        .environment(\.colorScheme, .dark)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, chromeVisible ? 130 : 16)
+                }
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: appState.isDriveConnected)
+        .onChange(of: appState.reconnectCount) { _, _ in
+            updatePlayer()
         }
         .statusBarHidden()
         .persistentSystemOverlays(chromeVisible ? .automatic : .hidden)
@@ -123,6 +139,9 @@ struct MediaViewer: View {
         let item = items[index]
         guard player?.url != item.url else { return }
         player?.tearDown()
+        player = nil
+        // No player for a file on an unplugged drive; one is made when it reconnects.
+        guard DriveIO.isAvailable else { return }
         let model = PlayerModel(url: item.url, knownDuration: VideoDurationService.shared.cachedDuration(for: item))
         player = model
         model.play()
@@ -265,6 +284,8 @@ private struct PhotoPage: View {
     let onSingleTap: () -> Void
 
     @State private var image: UIImage?
+    @State private var loadFailed = false
+    @Environment(AppState.self) private var appState
 
     var body: some View {
         Group {
@@ -272,16 +293,27 @@ private struct PhotoPage: View {
             if let shown = image ?? ThumbnailService.shared.cachedThumbnail(for: item) {
                 ZoomableImage(image: shown, isActive: isActive, onSingleTap: onSingleTap)
             } else {
-                ProgressView()
-                    .tint(.white)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(Rectangle())
-                    .onTapGesture(perform: onSingleTap)
+                Group {
+                    if loadFailed {
+                        Label("Can't Load Photo", systemImage: "exclamationmark.triangle")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.white.opacity(0.7))
+                    } else {
+                        ProgressView().tint(.white)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onSingleTap)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .task(id: item.id) {
+        // Reloads when the drive comes back, in case the first try failed.
+        .task(id: "\(item.id.path)#\(appState.reconnectCount)") {
+            guard image == nil else { return }
+            loadFailed = false
             image = await ThumbnailService.displayImage(for: item)
+            loadFailed = image == nil
         }
         .onDisappear {
             image = nil // free memory for pages swiped away

@@ -6,6 +6,8 @@ struct FolderGridView: UIViewControllerRepresentable {
     let folders: [FolderEntry]
     let groups: [MediaGroup]
     var isSelecting = false
+    /// Changing this re-runs thumbnail loading for visible cells (after the drive reconnects).
+    var reloadToken = 0
     let onOpenFolder: (FolderEntry) -> Void
     let onOpenItem: (MediaItem) -> Void
     var onSelectionChange: ([MediaItem]) -> Void = { _ in }
@@ -20,6 +22,7 @@ struct FolderGridView: UIViewControllerRepresentable {
         controller.onSelectionChange = onSelectionChange
         controller.apply(folders: folders, groups: groups)
         controller.setSelecting(isSelecting)
+        controller.reloadIfNeeded(token: reloadToken)
     }
 }
 
@@ -40,6 +43,7 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
     var onSelectionChange: (([MediaItem]) -> Void)?
 
     private var isSelecting = false
+    private var reloadToken = 0
     private var folders: [FolderEntry] = []
     private var groups: [MediaGroup] = []
     private var collectionView: UICollectionView!
@@ -125,6 +129,16 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
         dataSource?.apply(snapshot, animatingDifferences: false)
         // Deleted items drop out of the selection along with the grid.
         if isSelecting { reportSelection() }
+    }
+
+    /// Cells whose thumbnails or covers failed while the drive was away try again.
+    func reloadIfNeeded(token: Int) {
+        guard token != reloadToken else { return }
+        reloadToken = token
+        guard let dataSource else { return }
+        var snapshot = dataSource.snapshot()
+        snapshot.reconfigureItems(snapshot.itemIdentifiers)
+        dataSource.apply(snapshot, animatingDifferences: false)
     }
 
     // MARK: - Selection

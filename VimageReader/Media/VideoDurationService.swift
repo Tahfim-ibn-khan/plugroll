@@ -33,13 +33,15 @@ final class VideoDurationService: @unchecked Sendable {
             return seconds
         }
 
-        if Task.isCancelled { return nil }
+        if Task.isCancelled || !DriveIO.isAvailable { return nil }
         await limiter.acquire()
         if Task.isCancelled {
             await limiter.release()
             return nil
         }
-        let seconds = try? await AVURLAsset(url: item.url).load(.duration).seconds
+        let seconds = try? await DriveIO.withTimeout(10) {
+            try await AVURLAsset(url: item.url).load(.duration).seconds
+        }
         await limiter.release()
 
         guard let seconds, seconds.isFinite, seconds > 0 else { return nil }

@@ -27,10 +27,11 @@ enum ExportService {
     static func stageCopy(of item: MediaItem, index: Int, in batch: URL) async throws -> URL {
         let folder = batch.appendingPathComponent(String(index), isDirectory: true)
         let destination = folder.appendingPathComponent(item.name)
-        try await Task.detached(priority: .userInitiated) {
+        // No timeout: copying a large video legitimately takes a while.
+        try await DriveIO.run {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try FileManager.default.copyItem(at: item.url, to: destination)
-        }.value
+        }
         return destination
     }
 
@@ -50,9 +51,9 @@ enum ExportService {
 
     /// Permanently deletes the file from the drive.
     static func deleteFile(_ item: MediaItem) async throws {
-        try await Task.detached(priority: .userInitiated) {
+        try await DriveIO.run(timeout: 15) {
             try FileManager.default.removeItem(at: item.url)
-        }.value
+        }
     }
 
     @MainActor

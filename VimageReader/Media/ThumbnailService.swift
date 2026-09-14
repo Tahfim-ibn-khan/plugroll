@@ -36,7 +36,7 @@ final class ThumbnailService: @unchecked Sendable {
             return image
         }
 
-        if Task.isCancelled { return nil }
+        if Task.isCancelled || !DriveIO.isAvailable { return nil }
         await limiter.acquire()
         if Task.isCancelled {
             await limiter.release()
@@ -62,24 +62,30 @@ final class ThumbnailService: @unchecked Sendable {
     /// Screen-sized image for the full-screen viewer. Generous enough to stay sharp
     /// when zoomed in, small enough that a few pages can be in memory at once.
     static func displayImage(for item: MediaItem, maxPixel: CGFloat = 3000) async -> UIImage? {
-        await Task.detached(priority: .userInitiated) {
+        let image = try? await DriveIO.run(timeout: 30) {
             ThumbnailService.decodeImage(at: item.url, maxPixel: maxPixel, preferEmbeddedPreview: false)
                 .map { UIImage(cgImage: $0) }
-        }.value
+        }
+        return image ?? nil
     }
 
     private static func makeThumbnail(for item: MediaItem, maxPixel: CGFloat) async -> CGImage? {
         switch item.kind {
         case .photo:
             // RAW files carry a large embedded JPEG preview; decoding the RAW itself is slow.
-            return decodeImage(at: item.url, maxPixel: maxPixel, preferEmbeddedPreview: item.isRAW)
+            let image = try? await DriveIO.run(timeout: 15) {
+                ThumbnailService.decodeImage(at: item.url, maxPixel: maxPixel, preferEmbeddedPreview: item.isRAW)
+            }
+            return image ?? nil
         case .video:
-            let generator = AVAssetImageGenerator(asset: AVURLAsset(url: item.url))
-            generator.appliesPreferredTrackTransform = true
-            generator.maximumSize = CGSize(width: maxPixel, height: maxPixel)
-            generator.requestedTimeToleranceBefore = .positiveInfinity
-            generator.requestedTimeToleranceAfter = .positiveInfinity
-            return try? await generator.image(at: CMTime(seconds: 0.5, preferredTimescale: 600)).image
+            return try? await DriveIO.withTimeout(15) {
+                let generator = AVAssetImageGenerator(asset: AVURLAsset(url: item.url))
+                generator.appliesPreferredTrackTransform = true
+                generator.maximumSize = CGSize(width: maxPixel, height: maxPixel)
+                generator.requestedTimeToleranceBefore = .positiveInfinity
+                generator.requestedTimeToleranceAfter = .positiveInfinity
+                return try await generator.image(at: CMTime(seconds: 0.5, preferredTimescale: 600)).image
+            }
         }
     }
 

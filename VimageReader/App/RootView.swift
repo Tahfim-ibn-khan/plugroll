@@ -35,6 +35,15 @@ struct RootView: View {
                 }
             }
         }
+        .overlay(alignment: .bottom) {
+            if appState.rootURL != nil && !appState.isDriveConnected {
+                DriveDisconnectedBanner(onChooseDrive: { showPicker = true })
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(duration: 0.35), value: appState.isDriveConnected)
         .fileImporter(isPresented: $showPicker, allowedContentTypes: [.folder]) { result in
             switch result {
             case .success(let url): appState.open(url)

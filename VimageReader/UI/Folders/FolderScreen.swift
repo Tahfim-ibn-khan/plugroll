@@ -17,6 +17,8 @@ struct FolderScreen: View {
     @Environment(AppState.self) private var appState
     @State private var listing: FolderListing?
     @State private var errorMessage: String?
+    /// Bumped by Try Again to load the folder again.
+    @State private var reloadCount = 0
 
     /// What the grid shows: this folder's contents, or search results, in the chosen orders.
     @State private var displayedFolders: [FolderEntry] = []
@@ -58,6 +60,7 @@ struct FolderScreen: View {
                         folders: displayedFolders,
                         groups: groups,
                         isSelecting: isSelecting,
+                        reloadToken: appState.reconnectCount,
                         onOpenFolder: { appState.path.append($0) },
                         onOpenItem: { item in
                             viewer = ViewerSession(items: groups.flatMap(\.items), start: item)
@@ -67,11 +70,14 @@ struct FolderScreen: View {
                     .ignoresSafeArea()
                 }
             } else if let errorMessage {
-                ContentUnavailableView(
-                    "Can't Read Folder",
-                    systemImage: "externaldrive.badge.exclamationmark",
-                    description: Text(errorMessage)
-                )
+                ContentUnavailableView {
+                    Label("Can't Read Folder", systemImage: "externaldrive.badge.exclamationmark")
+                } description: {
+                    Text(errorMessage)
+                } actions: {
+                    Button("Try Again") { reloadCount += 1 }
+                        .buttonStyle(.borderedProminent)
+                }
             } else {
                 ProgressView()
             }
@@ -135,13 +141,16 @@ struct FolderScreen: View {
             Text("This permanently deletes the files from the drive. It can't be undone.")
         }
         .mediaActionsOverlay(actions)
-        .task(id: folder) {
+        .task(id: LoadKey(folder: folder, reload: reloadCount, reconnect: appState.reconnectCount)) {
+            // Already showing this folder: a reconnect doesn't need to rescan it.
+            if listing != nil, errorMessage == nil, reloadCount == 0 { return }
             do {
                 listing = try await FolderScanner.list(folder)
                 errorMessage = nil
                 refreshDisplay()
             } catch {
-                errorMessage = error.localizedDescription
+                // Keep showing what was already loaded; only an empty screen shows the error.
+                if listing == nil { errorMessage = error.localizedDescription }
             }
         }
         .task(id: SearchKey(query: trimmedQuery, scope: scope)) {
@@ -153,6 +162,7 @@ struct FolderScreen: View {
         .onChange(of: scope) { _, _ in refreshDisplay() }
         .fullScreenCover(item: $viewer) { session in
             MediaViewer(items: session.items, start: session.start, onDeleted: remove)
+                .environment(appState)
         }
     }
 
@@ -176,6 +186,12 @@ struct FolderScreen: View {
         }
         displayedFolders = appState.folderSort.sorted(folders)
         groups = appState.sort.groups(for: items)
+    }
+
+    private struct LoadKey: Equatable {
+        let folder: URL
+        let reload: Int
+        let reconnect: Int
     }
 
     private struct SearchKey: Equatable {

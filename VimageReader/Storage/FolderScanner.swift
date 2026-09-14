@@ -7,17 +7,23 @@ enum FolderScanner {
     ]
 
     static func list(_ folder: URL) async throws -> FolderListing {
-        try await Task.detached(priority: .userInitiated) {
+        // Generous: a folder of thousands of files on a slow drive takes a while.
+        try await DriveIO.run(timeout: 30) {
             try FolderScanner.scan(folder)
-        }.value
+        }
     }
 
     /// First photo or video inside a folder (looking up to two levels down), used as its cover.
     static func cover(for folder: URL) async -> MediaItem? {
         if let cached = await CoverCache.shared.value(for: folder) { return cached }
-        let found = await Task.detached(priority: .utility) { FolderScanner.findCover(in: folder) }.value
-        await CoverCache.shared.store(found, for: folder)
-        return found
+        do {
+            let found = try await DriveIO.run(timeout: 10) { FolderScanner.findCover(in: folder) }
+            await CoverCache.shared.store(found, for: folder)
+            return found
+        } catch {
+            // Not cached, so the cover is looked for again once the drive is back.
+            return nil
+        }
     }
 
     private static func scan(_ folder: URL) throws -> FolderListing {
@@ -48,13 +54,19 @@ enum FolderScanner {
     /// while a big drive is still being searched. Cancelling the consumer stops the walk.
     static func search(in folder: URL, query: String) -> AsyncStream<FolderListing> {
         AsyncStream { continuation in
-            let task = Task.detached(priority: .userInitiated) {
-                FolderScanner.walk(folder, matching: query, isCancelled: { Task.isCancelled }) { batch in
+            let cancelled = LockedValue(false)
+            continuation.onTermination = { _ in cancelled.value = true }
+            guard DriveIO.isAvailable else {
+                continuation.finish()
+                return
+            }
+            DriveIO.start {
+                let shouldStop = { cancelled.value || !DriveIO.isAvailable }
+                FolderScanner.walk(folder, matching: query, isCancelled: shouldStop) { batch in
                     continuation.yield(batch)
                 }
                 continuation.finish()
             }
-            continuation.onTermination = { _ in task.cancel() }
         }
     }
 

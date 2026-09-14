@@ -13,7 +13,13 @@ final class AppState {
     private(set) var sort: MediaSort = .newest
     private(set) var folderSort: FolderSort = .nameAscending
 
+    /// False while the opened drive is unplugged or not answering.
+    private(set) var isDriveConnected = true
+    /// Goes up each time the drive comes back, so screens that failed can load again.
+    private(set) var reconnectCount = 0
+
     private var isAccessingRoot = false
+    private var monitor: Task<Void, Never>?
 
     init() {
         let saved = UserDefaults.standard.string(forKey: Self.sortKey) ?? ""
@@ -29,15 +35,41 @@ final class AppState {
         isAccessingRoot = url.startAccessingSecurityScopedResource()
         rootURL = url
         path = []
+        setDriveConnected(true)
+        startMonitoring(url)
     }
 
     func closeRoot() {
+        monitor?.cancel()
+        monitor = nil
         if isAccessingRoot, let rootURL {
-            rootURL.stopAccessingSecurityScopedResource()
+            // Off the main thread: on an unplugged drive even this can block.
+            DriveIO.start { rootURL.stopAccessingSecurityScopedResource() }
         }
         isAccessingRoot = false
         rootURL = nil
         path = []
+        setDriveConnected(true)
+    }
+
+    /// Checks the drive every couple of seconds. While it's gone, drive work fails at once
+    /// instead of hanging, and the UI says so.
+    private func startMonitoring(_ url: URL) {
+        monitor = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                let connected = await DriveIO.probe(url)
+                guard !Task.isCancelled else { return }
+                self?.setDriveConnected(connected)
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+    }
+
+    private func setDriveConnected(_ connected: Bool) {
+        DriveIO.isAvailable = connected
+        guard connected != isDriveConnected else { return }
+        isDriveConnected = connected
+        if connected { reconnectCount += 1 }
     }
 
     func setSort(_ newValue: MediaSort) {
