@@ -4,18 +4,22 @@ import Observation
 @Observable
 final class AppState {
     private static let sortKey = "mediaSort"
+    private static let folderSortKey = "folderSort"
 
     private(set) var rootURL: URL?
     var path: [FolderEntry] = []
     var errorMessage: String?
     /// Shared by every folder, and remembered between launches.
     private(set) var sort: MediaSort = .newest
+    private(set) var folderSort: FolderSort = .nameAscending
 
     private var isAccessingRoot = false
 
     init() {
         let saved = UserDefaults.standard.string(forKey: Self.sortKey) ?? ""
         sort = MediaSort(rawValue: saved) ?? .newest
+        let savedFolderSort = UserDefaults.standard.string(forKey: Self.folderSortKey) ?? ""
+        folderSort = FolderSort(rawValue: savedFolderSort) ?? .nameAscending
     }
 
     /// Starts reading a folder picked with the system folder picker (e.g. the SSD root).
@@ -40,5 +44,11 @@ final class AppState {
         guard newValue != sort else { return }
         sort = newValue
         UserDefaults.standard.set(newValue.rawValue, forKey: Self.sortKey)
+    }
+
+    func setFolderSort(_ newValue: FolderSort) {
+        guard newValue != folderSort else { return }
+        folderSort = newValue
+        UserDefaults.standard.set(newValue.rawValue, forKey: Self.folderSortKey)
     }
 }

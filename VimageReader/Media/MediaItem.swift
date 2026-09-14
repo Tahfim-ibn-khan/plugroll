@@ -56,9 +56,42 @@ enum DurationFormat {
 
 struct FolderEntry: Identifiable, Hashable {
     let url: URL
+    var modified: Date = .distantPast
 
     var id: URL { url }
     var name: String { url.lastPathComponent }
+}
+
+/// How the grid orders a folder's subfolders.
+enum FolderSort: String, CaseIterable, Identifiable {
+    case nameAscending
+    case nameDescending
+    case newest
+    case oldest
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .nameAscending: return "Name A–Z"
+        case .nameDescending: return "Name Z–A"
+        case .newest: return "Newest First"
+        case .oldest: return "Oldest First"
+        }
+    }
+
+    func sorted(_ folders: [FolderEntry]) -> [FolderEntry] {
+        switch self {
+        case .nameAscending:
+            return folders.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        case .nameDescending:
+            return folders.sorted { $0.name.localizedStandardCompare($1.name) == .orderedDescending }
+        case .newest:
+            return folders.sorted { $0.modified > $1.modified }
+        case .oldest:
+            return folders.sorted { $0.modified < $1.modified }
+        }
+    }
 }
 
 struct FolderListing: Equatable {

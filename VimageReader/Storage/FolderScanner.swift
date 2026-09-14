@@ -32,7 +32,7 @@ enum FolderScanner {
         for url in urls {
             let values = try? url.resourceValues(forKeys: Set(keys))
             if values?.isDirectory == true {
-                if values?.isPackage != true { folders.append(FolderEntry(url: url)) }
+                if values?.isPackage != true { folders.append(makeFolder(url, values: values)) }
                 continue
             }
             if let item = makeItem(url, values: values) { items.append(item) }
@@ -41,6 +41,60 @@ enum FolderScanner {
         folders.sort { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         items.sort { $0.modified > $1.modified }
         return FolderListing(folders: folders, items: items)
+    }
+
+    /// Finds folders, photos and videos whose names contain `query`, anywhere below
+    /// `folder`. Matches arrive in small batches as the walk goes, so results show up
+    /// while a big drive is still being searched. Cancelling the consumer stops the walk.
+    static func search(in folder: URL, query: String) -> AsyncStream<FolderListing> {
+        AsyncStream { continuation in
+            let task = Task.detached(priority: .userInitiated) {
+                FolderScanner.walk(folder, matching: query, isCancelled: { Task.isCancelled }) { batch in
+                    continuation.yield(batch)
+                }
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    private static func walk(
+        _ folder: URL,
+        matching query: String,
+        isCancelled: () -> Bool,
+        emit: (FolderListing) -> Void
+    ) {
+        guard let enumerator = FileManager.default.enumerator(
+            at: folder,
+            includingPropertiesForKeys: keys,
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else { return }
+
+        var batch = FolderListing(folders: [], items: [])
+        var lastEmit = Date()
+
+        for case let url as URL in enumerator {
+            if isCancelled() { return }
+            guard url.lastPathComponent.localizedStandardContains(query) else { continue }
+
+            let values = try? url.resourceValues(forKeys: Set(keys))
+            if values?.isDirectory == true {
+                if values?.isPackage != true { batch.folders.append(makeFolder(url, values: values)) }
+            } else if let item = makeItem(url, values: values) {
+                batch.items.append(item)
+            }
+
+            if batch.folders.count + batch.items.count >= 50 || Date().timeIntervalSince(lastEmit) > 0.3 {
+                emit(batch)
+                batch = FolderListing(folders: [], items: [])
+                lastEmit = Date()
+            }
+        }
+        if !batch.folders.isEmpty || !batch.items.isEmpty { emit(batch) }
+    }
+
+    private static func makeFolder(_ url: URL, values: URLResourceValues?) -> FolderEntry {
+        FolderEntry(url: url, modified: values?.contentModificationDate ?? .distantPast)
     }
 
     private static func findCover(in folder: URL) -> MediaItem? {
