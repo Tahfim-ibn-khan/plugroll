@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import UniformTypeIdentifiers
 
@@ -29,6 +30,27 @@ struct MediaItem: Identifiable, Hashable {
 
     var isRAW: Bool {
         UTType(filenameExtension: url.pathExtension.lowercased())?.conforms(to: .rawImage) ?? false
+    }
+
+    /// Stable file name for on-phone caches. Size and modified date in the key mean an
+    /// edited file gets fresh cache entries.
+    var cacheKey: String {
+        let key = "\(url.path)|\(fileSize)|\(modified.timeIntervalSince1970)"
+        return SHA256.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+enum DurationFormat {
+    /// "0:42", "12:05" or "1:02:15", like Photos.
+    static func string(from seconds: Double) -> String {
+        let total = max(0, Int(seconds.rounded()))
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        let secs = total % 60
+        if hours > 0 {
+            return String(format: "%d:%02d:%02d", hours, minutes, secs)
+        }
+        return String(format: "%d:%02d", minutes, secs)
     }
 }
 

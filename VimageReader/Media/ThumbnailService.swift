@@ -1,5 +1,4 @@
 import AVFoundation
-import CryptoKit
 import ImageIO
 import UIKit
 
@@ -100,9 +99,6 @@ final class ThumbnailService: @unchecked Sendable {
     }
 
     private func diskCacheURL(for item: MediaItem) -> URL {
-        // Size and modified date in the key mean an edited file gets a fresh thumbnail.
-        let key = "\(item.url.path)|\(item.fileSize)|\(item.modified.timeIntervalSince1970)"
-        let hash = SHA256.hash(data: Data(key.utf8)).map { String(format: "%02x", $0) }.joined()
-        return diskDirectory.appendingPathComponent(hash + ".jpg")
+        diskDirectory.appendingPathComponent(item.cacheKey + ".jpg")
     }
 }
