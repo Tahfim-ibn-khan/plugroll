@@ -14,6 +14,10 @@ struct FolderScreen: View {
     @State private var groups: [MediaGroup] = []
     @State private var errorMessage: String?
     @State private var viewer: ViewerSession?
+    @State private var isSelecting = false
+    @State private var selection: [MediaItem] = []
+    @State private var confirmingDelete = false
+    @State private var actions = MediaActions()
 
     var body: some View {
         Group {
@@ -24,10 +28,12 @@ struct FolderScreen: View {
                     FolderGridView(
                         folders: listing.folders,
                         groups: groups,
+                        isSelecting: isSelecting,
                         onOpenFolder: { appState.path.append($0) },
                         onOpenItem: { item in
                             viewer = ViewerSession(items: groups.flatMap(\.items), start: item)
-                        }
+                        },
+                        onSelectionChange: { selection = $0 }
                     )
                     .ignoresSafeArea()
                 }
@@ -45,11 +51,69 @@ struct FolderScreen: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let listing, !listing.items.isEmpty {
+                if !isSelecting {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        sortMenu
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
-                    sortMenu
+                    Button(isSelecting ? "Cancel" : "Select") {
+                        isSelecting.toggle()
+                    }
+                    .fontWeight(isSelecting ? .semibold : .regular)
+                }
+            }
+            if isSelecting {
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Button {
+                        actions.share(selection)
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .disabled(selection.isEmpty)
+
+                    Spacer()
+
+                    Text(selection.isEmpty ? "Select Items" : "\(MediaActions.count(selection.count)) Selected")
+                        .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
+
+                    Spacer()
+
+                    Button {
+                        actions.saveToPhotos(selection)
+                    } label: {
+                        Image(systemName: "square.and.arrow.down")
+                    }
+                    .disabled(selection.isEmpty)
+
+                    Button(role: .destructive) {
+                        confirmingDelete = true
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .disabled(selection.isEmpty)
                 }
             }
         }
+        .toolbar(isSelecting ? .visible : .automatic, for: .bottomBar)
+        .navigationBarBackButtonHidden(isSelecting)
+        .confirmationDialog(
+            "Delete \(MediaActions.count(selection.count))?",
+            isPresented: $confirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button("Delete from Drive", role: .destructive) {
+                let doomed = selection
+                actions.delete(doomed) { deleted in
+                    remove(deleted)
+                    isSelecting = false
+                }
+            }
+        } message: {
+            Text("This permanently deletes the files from the drive. It can't be undone.")
+        }
+        .mediaActionsOverlay(actions)
         .task(id: folder) {
             do {
                 let loaded = try await FolderScanner.list(folder)
@@ -66,6 +130,13 @@ struct FolderScreen: View {
         .fullScreenCover(item: $viewer) { session in
             MediaViewer(items: session.items, start: session.start)
         }
+    }
+
+    /// Drops deleted files from this screen without rescanning the drive.
+    private func remove(_ deleted: [MediaItem]) {
+        let gone = Set(deleted.map(\.url))
+        listing?.items.removeAll { gone.contains($0.url) }
+        groups = appState.sort.groups(for: listing?.items ?? [])
     }
 
     private var sortMenu: some View {

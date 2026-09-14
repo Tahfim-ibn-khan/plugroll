@@ -5,8 +5,10 @@ import UIKit
 struct FolderGridView: UIViewControllerRepresentable {
     let folders: [FolderEntry]
     let groups: [MediaGroup]
+    var isSelecting = false
     let onOpenFolder: (FolderEntry) -> Void
     let onOpenItem: (MediaItem) -> Void
+    var onSelectionChange: ([MediaItem]) -> Void = { _ in }
 
     func makeUIViewController(context: Context) -> FolderGridViewController {
         FolderGridViewController()
@@ -15,7 +17,9 @@ struct FolderGridView: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: FolderGridViewController, context: Context) {
         controller.onOpenFolder = onOpenFolder
         controller.onOpenItem = onOpenItem
+        controller.onSelectionChange = onSelectionChange
         controller.apply(folders: folders, groups: groups)
+        controller.setSelecting(isSelecting)
     }
 }
 
@@ -33,7 +37,9 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
 
     var onOpenFolder: ((FolderEntry) -> Void)?
     var onOpenItem: ((MediaItem) -> Void)?
+    var onSelectionChange: (([MediaItem]) -> Void)?
 
+    private var isSelecting = false
     private var folders: [FolderEntry] = []
     private var groups: [MediaGroup] = []
     private var collectionView: UICollectionView!
@@ -47,6 +53,8 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
         collectionView.backgroundColor = .systemBackground
         collectionView.delegate = self
         collectionView.prefetchDataSource = self
+        // Needed for dragging a finger across the grid to select many items.
+        collectionView.allowsMultipleSelectionDuringEditing = true
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
@@ -115,6 +123,51 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
             snapshot.appendItems(group.items.map(Row.media), toSection: section)
         }
         dataSource?.apply(snapshot, animatingDifferences: false)
+        // Deleted items drop out of the selection along with the grid.
+        if isSelecting { reportSelection() }
+    }
+
+    // MARK: - Selection
+
+    func setSelecting(_ selecting: Bool) {
+        guard selecting != isSelecting, collectionView != nil else { return }
+        isSelecting = selecting
+        collectionView.isEditing = selecting
+        collectionView.allowsMultipleSelection = selecting
+        if !selecting {
+            for indexPath in collectionView.indexPathsForSelectedItems ?? [] {
+                collectionView.deselectItem(at: indexPath, animated: false)
+            }
+        }
+        reportSelection()
+    }
+
+    private func reportSelection() {
+        let items = (collectionView.indexPathsForSelectedItems ?? [])
+            .sorted()
+            .compactMap { indexPath -> MediaItem? in
+                guard case .media(let item) = dataSource?.itemIdentifier(for: indexPath) else { return nil }
+                return item
+            }
+        // Deferred: this can run inside a SwiftUI update, which must not change state.
+        DispatchQueue.main.async { [weak self] in
+            self?.onSelectionChange?(items)
+        }
+    }
+
+    func collectionView(_ collectionView: UICollectionView, shouldSelectItemAt indexPath: IndexPath) -> Bool {
+        // Folders open, but never join a selection.
+        guard isSelecting else { return true }
+        if case .media = dataSource?.itemIdentifier(for: indexPath) { return true }
+        return false
+    }
+
+    func collectionView(_ collectionView: UICollectionView, shouldBeginMultipleSelectionInteractionAt indexPath: IndexPath) -> Bool {
+        isSelecting
+    }
+
+    func collectionView(_ collectionView: UICollectionView, didDeselectItemAt indexPath: IndexPath) {
+        if isSelecting { reportSelection() }
     }
 
     // MARK: - Layout
@@ -197,9 +250,13 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
         return header
     }
 
-    // MARK: - Selection
+    // MARK: - Opening
 
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        if isSelecting {
+            reportSelection()
+            return
+        }
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let row = dataSource?.itemIdentifier(for: indexPath) else { return }
         switch row {

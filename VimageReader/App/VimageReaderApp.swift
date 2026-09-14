@@ -8,6 +8,8 @@ struct VimageReaderApp: App {
     init() {
         // Play video sound even when the silent switch is on, like Photos.
         try? AVAudioSession.sharedInstance().setCategory(.playback)
+        // Leftover copies from a share that was interrupted last time.
+        ExportService.clearOutbox()
     }
 
     var body: some Scene {

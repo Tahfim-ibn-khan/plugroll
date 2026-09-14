@@ -5,9 +5,16 @@ final class MediaCell: UICollectionViewCell {
     /// Darkens the bottom edge so the white duration text reads on bright thumbnails.
     private let bottomShade = GradientView()
     private let durationLabel = UILabel()
+    private let selectionTint = UIView()
+    private let checkmark = UIImageView()
     private var thumbnailTask: Task<Void, Never>?
     private var durationTask: Task<Void, Never>?
     private var itemURL: URL?
+    private var hasDurationBadge = false
+
+    override var isSelected: Bool {
+        didSet { updateSelectionAppearance() }
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -32,7 +39,30 @@ final class MediaCell: UICollectionViewCell {
         durationLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(durationLabel)
 
+        selectionTint.backgroundColor = UIColor.white.withAlphaComponent(0.25)
+        selectionTint.isUserInteractionEnabled = false
+        selectionTint.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(selectionTint)
+
+        let symbol = UIImage.SymbolConfiguration(pointSize: 22, weight: .regular)
+            .applying(UIImage.SymbolConfiguration(paletteColors: [.white, .systemBlue]))
+        checkmark.image = UIImage(systemName: "checkmark.circle.fill", withConfiguration: symbol)
+        checkmark.layer.shadowColor = UIColor.black.cgColor
+        checkmark.layer.shadowOpacity = 0.3
+        checkmark.layer.shadowRadius = 2
+        checkmark.layer.shadowOffset = .zero
+        checkmark.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(checkmark)
+
         NSLayoutConstraint.activate([
+            selectionTint.topAnchor.constraint(equalTo: contentView.topAnchor),
+            selectionTint.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            selectionTint.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            selectionTint.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+
+            checkmark.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -5),
+            checkmark.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -5),
+
             imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
             imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
@@ -47,6 +77,8 @@ final class MediaCell: UICollectionViewCell {
             durationLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -4),
             durationLabel.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: 4),
         ])
+
+        updateSelectionAppearance()
     }
 
     required init?(coder: NSCoder) {
@@ -111,9 +143,16 @@ final class MediaCell: UICollectionViewCell {
         } else {
             durationLabel.text = nil
         }
-        let showsBadge = durationLabel.text != nil
-        durationLabel.isHidden = !showsBadge
-        bottomShade.isHidden = !showsBadge
+        hasDurationBadge = durationLabel.text != nil
+        updateSelectionAppearance()
+    }
+
+    /// Like Photos: a selected cell lightens and its checkmark takes the duration's corner.
+    private func updateSelectionAppearance() {
+        selectionTint.isHidden = !isSelected
+        checkmark.isHidden = !isSelected
+        durationLabel.isHidden = !hasDurationBadge || isSelected
+        bottomShade.isHidden = !hasDurationBadge && !isSelected
     }
 }
 
