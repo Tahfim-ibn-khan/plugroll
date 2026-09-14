@@ -1,0 +1,399 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		3B9A86AF635F6F1B4B38CFD2 /* FolderScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF585284AFA18D6E39166D3C /* FolderScreen.swift */; };
+		42C3B3E89D58F680912681F0 /* AsyncLimiter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 298DB70A6EFDF57D07B78742 /* AsyncLimiter.swift */; };
+		962D303A60A1C59A51FDDDEE /* FolderScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270E374803B65EB94EE814CE /* FolderScanner.swift */; };
+		9A53846B7FB3096576C01B8B /* ThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C052D9189C722BF3608D79 /* ThumbnailService.swift */; };
+		B9EC5444DCD93EA744FC8384 /* MediaViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072208E298EAE9AB425C3B51 /* MediaViewer.swift */; };
+		C4EF38DD5EAB86750A21A74A /* FolderCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856E46546220E38032E14294 /* FolderCell.swift */; };
+		C9EFD0DE9E7504630B3E7212 /* MediaCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 579A3968CFF20B82BB3A8FBB /* MediaCell.swift */; };
+		DE60416F7D45DF7AF9BCAD80 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4C4555862858F5069AB8750 /* AppState.swift */; };
+		E590399F53E02EA2420D4B9C /* MediaItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 533CEFB25951B80248EC8EBD /* MediaItem.swift */; };
+		E989611EB12431F25E778F91 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45FC7CAF31AA5C34DBFD7F14 /* RootView.swift */; };
+		F4A1D9B1C3F69C2E771DAC34 /* VimageReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B15948519903002BA216EA5E /* VimageReaderApp.swift */; };
+		F8A1CA230BD322733612177F /* FolderGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0457C2A82B7DB1839D99D2A6 /* FolderGridView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0457C2A82B7DB1839D99D2A6 /* FolderGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderGridView.swift; sourceTree = "<group>"; };
+		072208E298EAE9AB425C3B51 /* MediaViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaViewer.swift; sourceTree = "<group>"; };
+		270E374803B65EB94EE814CE /* FolderScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderScanner.swift; sourceTree = "<group>"; };
+		298DB70A6EFDF57D07B78742 /* AsyncLimiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncLimiter.swift; sourceTree = "<group>"; };
+		45FC7CAF31AA5C34DBFD7F14 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		50C052D9189C722BF3608D79 /* ThumbnailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailService.swift; sourceTree = "<group>"; };
+		533CEFB25951B80248EC8EBD /* MediaItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaItem.swift; sourceTree = "<group>"; };
+		579A3968CFF20B82BB3A8FBB /* MediaCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaCell.swift; sourceTree = "<group>"; };
+		856E46546220E38032E14294 /* FolderCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderCell.swift; sourceTree = "<group>"; };
+		AF585284AFA18D6E39166D3C /* FolderScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderScreen.swift; sourceTree = "<group>"; };
+		B15948519903002BA216EA5E /* VimageReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VimageReaderApp.swift; sourceTree = "<group>"; };
+		C995C7F850A8D529CF5BFF04 /* VimageReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VimageReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F4C4555862858F5069AB8750 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		21ABCBE561F4626910D58831 /* VimageReader */ = {
+			isa = PBXGroup;
+			children = (
+				8925F39B755270C0B95F8F36 /* App */,
+				BF91A1A09D5CF20F906394D0 /* Media */,
+				EC4EADC972CE36B0951BD065 /* Storage */,
+				73C14A81D38EA4934A31E372 /* UI */,
+			);
+			path = VimageReader;
+			sourceTree = "<group>";
+		};
+		3907CFC7ED88B696523E7084 = {
+			isa = PBXGroup;
+			children = (
+				21ABCBE561F4626910D58831 /* VimageReader */,
+				E5C153B2D3E7B02D7056B592 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3CC715E45F10915C92557FA3 /* Folders */ = {
+			isa = PBXGroup;
+			children = (
+				AF585284AFA18D6E39166D3C /* FolderScreen.swift */,
+			);
+			path = Folders;
+			sourceTree = "<group>";
+		};
+		61E59BC5D81D3F2FEF4B72F3 /* Viewer */ = {
+			isa = PBXGroup;
+			children = (
+				072208E298EAE9AB425C3B51 /* MediaViewer.swift */,
+			);
+			path = Viewer;
+			sourceTree = "<group>";
+		};
+		73C14A81D38EA4934A31E372 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				3CC715E45F10915C92557FA3 /* Folders */,
+				D961B48F334B760B34DB1AFF /* Grid */,
+				61E59BC5D81D3F2FEF4B72F3 /* Viewer */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		8925F39B755270C0B95F8F36 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				F4C4555862858F5069AB8750 /* AppState.swift */,
+				45FC7CAF31AA5C34DBFD7F14 /* RootView.swift */,
+				B15948519903002BA216EA5E /* VimageReaderApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		BF91A1A09D5CF20F906394D0 /* Media */ = {
+			isa = PBXGroup;
+			children = (
+				298DB70A6EFDF57D07B78742 /* AsyncLimiter.swift */,
+				533CEFB25951B80248EC8EBD /* MediaItem.swift */,
+				50C052D9189C722BF3608D79 /* ThumbnailService.swift */,
+			);
+			path = Media;
+			sourceTree = "<group>";
+		};
+		D961B48F334B760B34DB1AFF /* Grid */ = {
+			isa = PBXGroup;
+			children = (
+				856E46546220E38032E14294 /* FolderCell.swift */,
+				0457C2A82B7DB1839D99D2A6 /* FolderGridView.swift */,
+				579A3968CFF20B82BB3A8FBB /* MediaCell.swift */,
+			);
+			path = Grid;
+			sourceTree = "<group>";
+		};
+		E5C153B2D3E7B02D7056B592 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				C995C7F850A8D529CF5BFF04 /* VimageReader.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EC4EADC972CE36B0951BD065 /* Storage */ = {
+			isa = PBXGroup;
+			children = (
+				270E374803B65EB94EE814CE /* FolderScanner.swift */,
+			);
+			path = Storage;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		ED117BDCE319EB560E3CD090 /* VimageReader */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E4358CE9C1FC87495E8270CF /* Build configuration list for PBXNativeTarget "VimageReader" */;
+			buildPhases = (
+				06F34B0EB5762F36C830D7D5 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = VimageReader;
+			packageProductDependencies = (
+			);
+			productName = VimageReader;
+			productReference = C995C7F850A8D529CF5BFF04 /* VimageReader.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		367B29CDD8A2125FDA6ABBA4 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					ED117BDCE319EB560E3CD090 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = BF4684892A689213D4FDF1A6 /* Build configuration list for PBXProject "VimageReader" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 3907CFC7ED88B696523E7084;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E5C153B2D3E7B02D7056B592 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				ED117BDCE319EB560E3CD090 /* VimageReader */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		06F34B0EB5762F36C830D7D5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DE60416F7D45DF7AF9BCAD80 /* AppState.swift in Sources */,
+				42C3B3E89D58F680912681F0 /* AsyncLimiter.swift in Sources */,
+				C4EF38DD5EAB86750A21A74A /* FolderCell.swift in Sources */,
+				F8A1CA230BD322733612177F /* FolderGridView.swift in Sources */,
+				962D303A60A1C59A51FDDDEE /* FolderScanner.swift in Sources */,
+				3B9A86AF635F6F1B4B38CFD2 /* FolderScreen.swift in Sources */,
+				C9EFD0DE9E7504630B3E7212 /* MediaCell.swift in Sources */,
+				E590399F53E02EA2420D4B9C /* MediaItem.swift in Sources */,
+				B9EC5444DCD93EA744FC8384 /* MediaViewer.swift in Sources */,
+				E989611EB12431F25E778F91 /* RootView.swift in Sources */,
+				9A53846B7FB3096576C01B8B /* ThumbnailService.swift in Sources */,
+				F4A1D9B1C3F69C2E771DAC34 /* VimageReaderApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0DF1762E03ED811E834AA032 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MWNZDA9UKF;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = vimage;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.tahfim.vimagereader;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		1DE20707D27D5B04CC93E3D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MWNZDA9UKF;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = vimage;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.tahfim.vimagereader;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		D4CE27253E875A8EC3119C08 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 0.1;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		DB0B57CD849F7FF5471583DF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 0.1;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BF4684892A689213D4FDF1A6 /* Build configuration list for PBXProject "VimageReader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DB0B57CD849F7FF5471583DF /* Debug */,
+				D4CE27253E875A8EC3119C08 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E4358CE9C1FC87495E8270CF /* Build configuration list for PBXNativeTarget "VimageReader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0DF1762E03ED811E834AA032 /* Debug */,
+				1DE20707D27D5B04CC93E3D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 367B29CDD8A2125FDA6ABBA4 /* Project object */;
+}
