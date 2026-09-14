@@ -13,6 +13,7 @@
 		74A1B1BA99466F33FC59B0FA /* VideoControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFB1DD4A3A9C5011043BA452 /* VideoControls.swift */; };
 		962D303A60A1C59A51FDDDEE /* FolderScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270E374803B65EB94EE814CE /* FolderScanner.swift */; };
 		9A53846B7FB3096576C01B8B /* ThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C052D9189C722BF3608D79 /* ThumbnailService.swift */; };
+		A201D53F642E7EA9B4C94F50 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4CCCFD762DB48F5AE9DF9E4D /* Assets.xcassets */; };
 		A9408EA2F096BCBEC23873ED /* PlayerLayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DFCAD4761374C2B7FBB06C5 /* PlayerLayerView.swift */; };
 		AAC4D26371F6BB7C449F8030 /* PlayerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B079E38E28F6825B8D37DC6 /* PlayerModel.swift */; };
 		B9EC5444DCD93EA744FC8384 /* MediaViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 072208E298EAE9AB425C3B51 /* MediaViewer.swift */; };
@@ -36,6 +37,7 @@
 		298DB70A6EFDF57D07B78742 /* AsyncLimiter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncLimiter.swift; sourceTree = "<group>"; };
 		451CE844E790CEB43B1A04DC /* MediaActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaActions.swift; sourceTree = "<group>"; };
 		45FC7CAF31AA5C34DBFD7F14 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		4CCCFD762DB48F5AE9DF9E4D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		50C052D9189C722BF3608D79 /* ThumbnailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailService.swift; sourceTree = "<group>"; };
 		533CEFB25951B80248EC8EBD /* MediaItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaItem.swift; sourceTree = "<group>"; };
 		579A3968CFF20B82BB3A8FBB /* MediaCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaCell.swift; sourceTree = "<group>"; };
@@ -55,6 +57,7 @@
 		21ABCBE561F4626910D58831 /* VimageReader */ = {
 			isa = PBXGroup;
 			children = (
+				4CCCFD762DB48F5AE9DF9E4D /* Assets.xcassets */,
 				8925F39B755270C0B95F8F36 /* App */,
 				D90E2C023A1DDC2FC1E16935 /* Export */,
 				BF91A1A09D5CF20F906394D0 /* Media */,
@@ -166,6 +169,7 @@
 			buildConfigurationList = E4358CE9C1FC87495E8270CF /* Build configuration list for PBXNativeTarget "VimageReader" */;
 			buildPhases = (
 				06F34B0EB5762F36C830D7D5 /* Sources */,
+				D399707AFED450C392D21127 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -211,6 +215,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D399707AFED450C392D21127 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A201D53F642E7EA9B4C94F50 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		06F34B0EB5762F36C830D7D5 /* Sources */ = {

@@ -21,6 +21,7 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: MWNZDA9UKF
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: "YES"
         INFOPLIST_KEY_CFBundleDisplayName: vimage
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "vimage saves photos and videos you pick from your drive to your photo library."
