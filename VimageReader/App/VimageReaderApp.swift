@@ -1,0 +1,19 @@
+import AVFoundation
+import SwiftUI
+
+@main
+struct VimageReaderApp: App {
+    @State private var appState = AppState()
+
+    init() {
+        // Play video sound even when the silent switch is on, like Photos.
+        try? AVAudioSession.sharedInstance().setCategory(.playback)
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            RootView()
+                .environment(appState)
+        }
+    }
+}
