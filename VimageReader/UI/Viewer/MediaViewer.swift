@@ -4,23 +4,32 @@ import UIKit
 
 /// Full-screen swipe-through viewer for photos and videos.
 struct MediaViewer: View {
-    let items: [MediaItem]
+    /// Tells the folder screen which files were deleted from here.
+    let onDeleted: ([MediaItem]) -> Void
 
+    @State private var items: [MediaItem]
     @State private var currentID: URL?
     @State private var chromeVisible = true
     /// Player for the current page when it is a video; nil on photo pages.
     @State private var player: PlayerModel?
     /// Bumped on every control touch to restart the auto-hide countdown.
     @State private var controlsActivity = 0
+    @State private var actions = MediaActions()
+    @State private var confirmingDelete = false
     @Environment(\.dismiss) private var dismiss
 
-    init(items: [MediaItem], start: MediaItem) {
-        self.items = items
+    init(items: [MediaItem], start: MediaItem, onDeleted: @escaping ([MediaItem]) -> Void = { _ in }) {
+        self.onDeleted = onDeleted
+        _items = State(initialValue: items)
         _currentID = State(initialValue: start.id)
     }
 
     private var currentIndex: Int? {
         items.firstIndex { $0.id == currentID }
+    }
+
+    private var currentItem: MediaItem? {
+        currentIndex.map { items[$0] }
     }
 
     var body: some View {
@@ -53,21 +62,36 @@ struct MediaViewer: View {
                     Spacer(minLength: 0)
                     if let player {
                         VideoControls(player: player, onInteraction: { controlsActivity += 1 })
+                            .frame(maxWidth: 640)
                             .padding(.horizontal, 12)
                             .padding(.bottom, 8)
                     }
+                    actionBar
                 }
                 .transition(.opacity)
             }
         }
         .statusBarHidden()
         .persistentSystemOverlays(chromeVisible ? .automatic : .hidden)
+        .mediaActionsOverlay(actions)
+        .confirmationDialog(
+            currentItem?.kind == .video ? "Delete This Video?" : "Delete This Photo?",
+            isPresented: $confirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button("Delete from Drive", role: .destructive) {
+                deleteCurrent()
+            }
+        } message: {
+            Text("This permanently deletes the file from the drive. It can't be undone.")
+        }
         .onChange(of: currentID, initial: true) { _, _ in
             updatePlayer()
         }
         .onDisappear {
             player?.tearDown()
             player = nil
+            OrientationController.reset()
         }
         .task(id: AutoHideKey(
             chromeVisible: chromeVisible,
@@ -104,42 +128,114 @@ struct MediaViewer: View {
         model.play()
     }
 
-    private var topBar: some View {
-        HStack {
-            Button {
+    private func deleteCurrent() {
+        guard let index = currentIndex else { return }
+        let item = items[index]
+        // Let go of the file before deleting it.
+        if player?.url == item.url {
+            player?.tearDown()
+            player = nil
+        }
+        actions.delete([item]) { deleted in
+            let gone = Set(deleted.map(\.url))
+            items.removeAll { gone.contains($0.url) }
+            onDeleted(deleted)
+            if items.isEmpty {
                 dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
-                    .frame(width: 36, height: 36)
-                    .background(.ultraThinMaterial, in: Circle())
+            } else {
+                // Land on the item that slid into the deleted one's place.
+                currentID = items[min(index, items.count - 1)].id
+                updatePlayer()
             }
-            .tint(.white)
+        }
+    }
 
-            Spacer()
+    // MARK: - Bars
+
+    private var topBar: some View {
+        HStack(spacing: 12) {
+            circleButton("xmark") { dismiss() }
+
+            Spacer(minLength: 0)
 
             if let index = currentIndex {
                 VStack(spacing: 1) {
                     Text(items[index].name)
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.white)
-                    Text("\(index + 1) of \(items.count)")
+                        .font(.footnote.weight(.semibold))
+                    Text("\(Self.dateFormatter.string(from: items[index].modified)) · \(index + 1) of \(items.count)")
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.7))
                 }
                 .lineLimit(1)
-                .padding(.horizontal, 12)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
                 .padding(.vertical, 6)
                 .background(.ultraThinMaterial, in: Capsule())
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            Color.clear.frame(width: 36, height: 36)
+            circleButton("rectangle.landscape.rotate") {
+                OrientationController.toggle()
+                controlsActivity += 1
+            }
         }
         .padding(.horizontal)
         .padding(.top, 8)
+        .environment(\.colorScheme, .dark)
     }
+
+    private var actionBar: some View {
+        HStack(spacing: 0) {
+            actionButton("square.and.arrow.up", label: "Share") {
+                if let currentItem { actions.share([currentItem]) }
+            }
+            actionButton("square.and.arrow.down", label: "Save") {
+                if let currentItem { actions.saveToPhotos([currentItem]) }
+            }
+            actionButton("trash", label: "Delete") {
+                confirmingDelete = true
+            }
+        }
+        .padding(.horizontal, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .environment(\.colorScheme, .dark)
+        .padding(.bottom, 8)
+    }
+
+    private func circleButton(_ symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 40)
+                .background(.ultraThinMaterial, in: Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func actionButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
+        Button {
+            action()
+            controlsActivity += 1
+        } label: {
+            Image(systemName: symbol)
+                .font(.system(size: 19, weight: .medium))
+                .foregroundStyle(.white)
+                .frame(width: 64, height: 46)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
 }
 
 private struct AutoHideKey: Equatable {

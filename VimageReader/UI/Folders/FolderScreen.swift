@@ -128,7 +128,7 @@ struct FolderScreen: View {
             groups = newSort.groups(for: listing?.items ?? [])
         }
         .fullScreenCover(item: $viewer) { session in
-            MediaViewer(items: session.items, start: session.start)
+            MediaViewer(items: session.items, start: session.start, onDeleted: remove)
         }
     }
 

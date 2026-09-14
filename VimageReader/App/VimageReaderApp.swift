@@ -3,6 +3,7 @@ import SwiftUI
 
 @main
 struct VimageReaderApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var appState = AppState()
 
     init() {
