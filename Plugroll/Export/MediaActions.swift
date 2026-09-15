@@ -1,8 +1,7 @@
 import Observation
-import Photos
 import SwiftUI
 
-/// Runs Share, Save to Photos and Delete for a screen, and publishes progress and
+/// Runs Share and Delete for a screen, and publishes progress and
 /// results for `mediaActionsOverlay` to show. Each screen owns its own instance.
 @MainActor
 @Observable
@@ -57,63 +56,6 @@ final class MediaActions {
                 if !(error is CancellationError) {
                     failure = Failure(title: "Couldn't Share", message: error.localizedDescription)
                 }
-            }
-        }
-    }
-
-    func saveToPhotos(_ items: [MediaItem]) {
-        guard !items.isEmpty, !isBusy else { return }
-        // Busy from the first tap, so a second tap while the Photos prompt is up
-        // can't start another save.
-        progress = Progress(title: "Saving to Photos", completed: 0, total: items.count)
-
-        work = Task {
-            let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
-            guard status == .authorized || status == .limited else {
-                progress = nil
-                failure = Failure(
-                    title: "No Access to Photos",
-                    message: "Allow Plugroll to add photos in Settings → Apps → Plugroll → Photos."
-                )
-                return
-            }
-
-            var saved = 0
-            var failed = 0
-            var lastError: Error?
-
-            do {
-                let batch = try ExportService.makeBatchDirectory()
-                // One file at a time: copy, then move into Photos, so big videos
-                // never sit on the phone twice. Cancelled items count as neither.
-                for (index, item) in items.enumerated() {
-                    if Task.isCancelled { break }
-                    do {
-                        let copy = try await ExportService.stageCopy(of: item, index: index, in: batch)
-                        try await ExportService.addToPhotoLibrary(copy, item: item)
-                        saved += 1
-                    } catch is CancellationError {
-                        break
-                    } catch {
-                        failed += 1
-                        lastError = error
-                    }
-                    progress?.completed = index + 1
-                }
-                ExportService.remove(batch)
-            } catch {
-                failed = items.count
-                lastError = error
-            }
-
-            progress = nil
-            if failed > 0, let lastError {
-                failure = Failure(
-                    title: saved > 0 ? "Saved \(Self.count(saved))" : "Couldn't Save",
-                    message: "\(Self.count(failed)) couldn't be saved. \(lastError.localizedDescription)"
-                )
-            } else if saved > 0 {
-                showToast("Saved \(Self.count(saved)) to Photos")
             }
         }
     }

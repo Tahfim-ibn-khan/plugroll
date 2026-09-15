@@ -1,4 +1,3 @@
-import Photos
 import UIKit
 
 enum ExportError: LocalizedError {
@@ -11,10 +10,10 @@ enum ExportError: LocalizedError {
     }
 }
 
-/// File work behind Share, Save to Photos and Delete.
+/// File work behind Share and Delete.
 enum ExportService {
-    /// Files are copied off the drive before handing them to Photos or the share sheet:
-    /// those run in other processes, which may not be allowed to read the drive directly.
+    /// Files are copied off the drive before handing them to the share sheet: it runs
+    /// in other processes, which may not be allowed to read the drive directly.
     static let outbox = FileManager.default.temporaryDirectory
         .appendingPathComponent("Outbox", isDirectory: true)
 
@@ -76,20 +75,6 @@ enum ExportService {
         // Keep the original date, as copyItem did: some apps show it for shared files.
         if let modified = try? source.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate {
             try? FileManager.default.setAttributes([.modificationDate: modified], ofItemAtPath: destination.path)
-        }
-    }
-
-    /// Adds a staged copy to the photo library, moving the file in rather than copying it again.
-    static func addToPhotoLibrary(_ fileURL: URL, item: MediaItem) async throws {
-        try await PHPhotoLibrary.shared().performChanges {
-            let options = PHAssetResourceCreationOptions()
-            options.shouldMoveFile = true
-            options.originalFilename = item.name
-            PHAssetCreationRequest.forAsset().addResource(
-                with: item.kind == .video ? .video : .photo,
-                fileURL: fileURL,
-                options: options
-            )
         }
     }
 

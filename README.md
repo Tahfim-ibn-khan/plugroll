@@ -23,10 +23,10 @@ remembers it and opens it again at the next launch if it is plugged in.
   group the grid under sticky day headers.
 - Search by name at the top: **This Folder** filters instantly, **All Subfolders** searches
   everything below the current folder.
-- **Select** lets you tap or drag across items, then Share, Save to Photos or Delete.
+- **Select** lets you tap or drag across items, then Share or Delete.
   Delete removes files from the drive permanently.
 - Tap an item for the full-screen viewer: swipe between items, pinch or double-tap photos
-  to zoom, and tap once to hide the bars. The bottom bar has Share, Save and Delete; the
+  to zoom, and tap once to hide the bars. The bottom bar has Share and Delete; the
   top-right button rotates the screen, even with Portrait Lock on.
 - Videos play in a Photos-style player: scrub bar, play/pause, skip 10 seconds (or
   double-tap a side), mute and AirPlay. Controls hide on their own while playing.

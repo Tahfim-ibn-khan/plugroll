@@ -268,13 +268,6 @@ struct FolderScreen: View {
 
         Spacer()
 
-        Button {
-            actions.saveToPhotos(selection)
-        } label: {
-            Image(systemName: "square.and.arrow.down")
-        }
-        .disabled(selection.isEmpty)
-
         Button(role: .destructive) {
             confirmingDelete = true
         } label: {
