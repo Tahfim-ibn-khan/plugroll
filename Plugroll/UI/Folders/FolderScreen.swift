@@ -65,7 +65,8 @@ struct FolderScreen: View {
                         onOpenItem: { item in
                             viewer = ViewerSession(items: groups.flatMap(\.items), start: item)
                         },
-                        onSelectionChange: { selection = $0 }
+                        onSelectionChange: { selection = $0 },
+                        onRefresh: { await refreshListing() }
                     )
                     .ignoresSafeArea()
                 }
@@ -228,6 +229,16 @@ struct FolderScreen: View {
         if !Task.isCancelled {
             isSearchingDeep = false
         }
+    }
+
+    /// Pull to refresh: rescans the folder, for files added or changed on the drive
+    /// elsewhere. On failure the grid keeps what it had.
+    private func refreshListing() async {
+        await FolderScanner.resetCovers()
+        guard let fresh = try? await FolderScanner.list(folder) else { return }
+        listing = fresh
+        errorMessage = nil
+        refreshDisplay()
     }
 
     /// Drops deleted files from this screen without rescanning the drive.

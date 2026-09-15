@@ -2,6 +2,7 @@ import UIKit
 
 /// Lets SwiftUI decide which orientations the app allows at any moment.
 final class AppDelegate: NSObject, UIApplicationDelegate {
+    @MainActor
     func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
         OrientationController.allowed
     }

@@ -11,6 +11,8 @@ struct FolderGridView: UIViewControllerRepresentable {
     let onOpenFolder: (FolderEntry) -> Void
     let onOpenItem: (MediaItem) -> Void
     var onSelectionChange: ([MediaItem]) -> Void = { _ in }
+    /// Pull to refresh. The spinner stays until this returns.
+    var onRefresh: (() async -> Void)?
 
     func makeUIViewController(context: Context) -> FolderGridViewController {
         FolderGridViewController()
@@ -20,6 +22,7 @@ struct FolderGridView: UIViewControllerRepresentable {
         controller.onOpenFolder = onOpenFolder
         controller.onOpenItem = onOpenItem
         controller.onSelectionChange = onSelectionChange
+        controller.onRefresh = onRefresh
         controller.apply(folders: folders, groups: groups)
         controller.setSelecting(isSelecting)
         controller.reloadIfNeeded(token: reloadToken)
@@ -41,6 +44,7 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
     var onOpenFolder: ((FolderEntry) -> Void)?
     var onOpenItem: ((MediaItem) -> Void)?
     var onSelectionChange: (([MediaItem]) -> Void)?
+    var onRefresh: (() async -> Void)?
 
     private var isSelecting = false
     private var reloadToken = 0
@@ -61,6 +65,10 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
         collectionView.prefetchDataSource = self
         // Needed for dragging a finger across the grid to select many items.
         collectionView.allowsMultipleSelectionDuringEditing = true
+        collectionView.refreshControl = UIRefreshControl(
+            frame: .zero,
+            primaryAction: UIAction { [weak self] _ in self?.refresh() }
+        )
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
         NSLayoutConstraint.activate([
@@ -155,6 +163,17 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
         var snapshot = dataSource.snapshot()
         snapshot.reconfigureItems(snapshot.itemIdentifiers)
         dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
+    private func refresh() {
+        guard let onRefresh, !isSelecting else {
+            collectionView.refreshControl?.endRefreshing()
+            return
+        }
+        Task { [weak self] in
+            await onRefresh()
+            self?.collectionView.refreshControl?.endRefreshing()
+        }
     }
 
     // MARK: - Selection

@@ -15,9 +15,8 @@ final class ThumbnailService: @unchecked Sendable {
         // as by count: a folder of a few thousand photos would otherwise fill memory.
         memory.countLimit = 600
         memory.totalCostLimit = 96 * 1024 * 1024
-        diskDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Thumbnails", isDirectory: true)
-        try? FileManager.default.createDirectory(at: diskDirectory, withIntermediateDirectories: true)
+        // ~30 KB a thumbnail, so this keeps roughly 15,000 of them.
+        diskDirectory = CacheDirectory.make(named: "Thumbnails", sizeLimit: 500 * 1024 * 1024)
     }
 
     /// Instant lookup for already-loaded thumbnails (no disk or drive access).

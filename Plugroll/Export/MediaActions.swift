@@ -63,10 +63,14 @@ final class MediaActions {
 
     func saveToPhotos(_ items: [MediaItem]) {
         guard !items.isEmpty, !isBusy else { return }
+        // Busy from the first tap, so a second tap while the Photos prompt is up
+        // can't start another save.
+        progress = Progress(title: "Saving to Photos", completed: 0, total: items.count)
 
         work = Task {
             let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
             guard status == .authorized || status == .limited else {
+                progress = nil
                 failure = Failure(
                     title: "No Access to Photos",
                     message: "Allow Plugroll to add photos in Settings → Apps → Plugroll → Photos."
@@ -74,7 +78,6 @@ final class MediaActions {
                 return
             }
 
-            progress = Progress(title: "Saving to Photos", completed: 0, total: items.count)
             var saved = 0
             var failed = 0
             var lastError: Error?
@@ -89,6 +92,8 @@ final class MediaActions {
                         let copy = try await ExportService.stageCopy(of: item, index: index, in: batch)
                         try await ExportService.addToPhotoLibrary(copy, item: item)
                         saved += 1
+                    } catch is CancellationError {
+                        break
                     } catch {
                         failed += 1
                         lastError = error

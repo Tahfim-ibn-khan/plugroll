@@ -12,9 +12,7 @@ final class VideoDurationService: @unchecked Sendable {
 
     private init() {
         memory.countLimit = 5000
-        diskDirectory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Durations", isDirectory: true)
-        try? FileManager.default.createDirectory(at: diskDirectory, withIntermediateDirectories: true)
+        diskDirectory = CacheDirectory.make(named: "Durations", sizeLimit: 50 * 1024 * 1024)
     }
 
     /// Instant lookup (no disk or drive access), in seconds.

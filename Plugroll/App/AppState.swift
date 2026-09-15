@@ -1,10 +1,12 @@
 import Foundation
 import Observation
 
+@MainActor
 @Observable
 final class AppState {
     private static let sortKey = "mediaSort"
     private static let folderSortKey = "folderSort"
+    private static let bookmarkKey = "driveBookmark"
 
     private(set) var rootURL: URL?
     var path: [FolderEntry] = []
@@ -37,9 +39,31 @@ final class AppState {
         path = []
         setDriveConnected(true)
         startMonitoring(url)
+        saveBookmark(for: url)
+    }
+
+    /// Reopens the drive picked last time, if it is plugged in. Otherwise the bookmark is
+    /// kept, so a later launch with the drive attached still opens it.
+    func restoreLastDrive() async {
+        guard rootURL == nil, let data = UserDefaults.standard.data(forKey: Self.bookmarkKey) else { return }
+        // Off the main thread and time-limited: resolving can touch the drive.
+        let resolved = try? await DriveIO.run(timeout: 5) { () -> URL? in
+            var isStale = false
+            let url = try URL(resolvingBookmarkData: data, options: [], bookmarkDataIsStale: &isStale)
+            return (try? url.checkResourceIsReachable()) == true ? url : nil
+        }
+        guard rootURL == nil, let url = resolved ?? nil else { return }
+        open(url)
+    }
+
+    private func saveBookmark(for url: URL) {
+        // Made while access is on; a bookmark to a picked folder carries that access.
+        guard let data = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) else { return }
+        UserDefaults.standard.set(data, forKey: Self.bookmarkKey)
     }
 
     func closeRoot() {
+        Task { await FolderScanner.resetCovers() }
         monitor?.cancel()
         monitor = nil
         if isAccessingRoot, let rootURL {

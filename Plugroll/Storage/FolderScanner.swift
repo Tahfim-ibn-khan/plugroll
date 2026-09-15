@@ -3,7 +3,7 @@ import Foundation
 /// Reads folders on the drive. Each call looks at one folder only (no deep scans).
 enum FolderScanner {
     private static let keys: [URLResourceKey] = [
-        .isDirectoryKey, .isPackageKey, .contentModificationDateKey, .fileSizeKey,
+        .isDirectoryKey, .isRegularFileKey, .isPackageKey, .contentModificationDateKey, .fileSizeKey,
     ]
 
     static func list(_ folder: URL) async throws -> FolderListing {
@@ -17,13 +17,27 @@ enum FolderScanner {
     static func cover(for folder: URL) async -> MediaItem? {
         if let cached = await CoverCache.shared.value(for: folder) { return cached }
         do {
-            let found = try await DriveIO.run(timeout: 10) { FolderScanner.findCover(in: folder) }
-            await CoverCache.shared.store(found, for: folder)
+            let (found, complete) = try await DriveIO.run(timeout: 10) { FolderScanner.findCover(in: folder) }
+            // "No cover" is only remembered when the whole walk succeeded: a drive that
+            // vanished halfway would otherwise leave the folder coverless for good.
+            if found != nil || complete {
+                await CoverCache.shared.store(found, for: folder)
+            }
             return found
         } catch {
             // Not cached, so the cover is looked for again once the drive is back.
             return nil
         }
+    }
+
+    /// Forgets every remembered cover, e.g. when a different drive is opened.
+    static func resetCovers() async {
+        await CoverCache.shared.removeAll()
+    }
+
+    /// Forgets covers that show a file which has just been deleted.
+    static func forgetCovers(showing deleted: URL) async {
+        await CoverCache.shared.remove(showing: deleted)
     }
 
     private static func scan(_ folder: URL) throws -> FolderListing {
@@ -109,12 +123,18 @@ enum FolderScanner {
         FolderEntry(url: url, modified: values?.contentModificationDate ?? .distantPast)
     }
 
-    private static func findCover(in folder: URL) -> MediaItem? {
+    /// The cover, and whether every folder on the way could be read.
+    private static func findCover(in folder: URL) -> (MediaItem?, complete: Bool) {
+        let hadError = LockedValue(false)
         guard let enumerator = FileManager.default.enumerator(
             at: folder,
             includingPropertiesForKeys: keys,
-            options: [.skipsHiddenFiles, .skipsPackageDescendants]
-        ) else { return nil }
+            options: [.skipsHiddenFiles, .skipsPackageDescendants],
+            errorHandler: { _, _ in
+                hadError.value = true
+                return true
+            }
+        ) else { return (nil, false) }
 
         for case let url as URL in enumerator {
             let values = try? url.resourceValues(forKeys: Set(keys))
@@ -124,13 +144,15 @@ enum FolderScanner {
                 if enumerator.level >= 2 { enumerator.skipDescendants() }
                 continue
             }
-            if let item = makeItem(url, values: values) { return item }
+            if let item = makeItem(url, values: values) { return (item, true) }
         }
-        return nil
+        return (nil, !hadError.value)
     }
 
     private static func makeItem(_ url: URL, values: URLResourceValues?) -> MediaItem? {
-        guard let kind = MediaKind(url: url) else { return nil }
+        // Only plain files: anything unreadable or odd (a folder named "clip.mov", a symlink)
+        // must never become an item, since Delete removes items from the drive.
+        guard values?.isRegularFile == true, let kind = MediaKind(url: url) else { return nil }
         return MediaItem(
             url: url,
             kind: kind,
@@ -147,4 +169,8 @@ private actor CoverCache {
 
     func value(for folder: URL) -> MediaItem?? { covers[folder] }
     func store(_ item: MediaItem?, for folder: URL) { covers[folder] = .some(item) }
+    func removeAll() { covers.removeAll() }
+    func remove(showing deleted: URL) {
+        covers = covers.filter { $0.value?.url != deleted }
+    }
 }

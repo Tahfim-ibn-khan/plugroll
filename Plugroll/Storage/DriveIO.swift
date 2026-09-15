@@ -19,11 +19,19 @@ enum DriveError: LocalizedError {
 /// every task in the app. So drive work runs on its own queue, callers stop waiting after
 /// a timeout, and while the drive is known to be gone new work fails immediately.
 enum DriveIO {
-    private static let queue = DispatchQueue(
-        label: "plugroll.drive-io",
-        qos: .userInitiated,
-        attributes: .concurrent
-    )
+    /// Capped, because each call stuck on a vanished drive pins a thread until the kernel
+    /// gives up. Waiting work doesn't hold a thread, so a flaky drive can't exhaust them.
+    private static let queue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "plugroll.drive-io"
+        queue.qualityOfService = .userInitiated
+        queue.maxConcurrentOperationCount = 16
+        return queue
+    }()
+
+    /// The reachability check runs on its own queue, so a queue full of slow work
+    /// doesn't make a working drive look unplugged.
+    private static let probeQueue = DispatchQueue(label: "plugroll.drive-probe", qos: .userInitiated)
 
     private static let availability = LockedValue(true)
     private static let probeRunning = LockedValue(false)
@@ -36,14 +44,14 @@ enum DriveIO {
 
     /// Blocking file work on the drive. `timeout` nil waits as long as it takes
     /// (for copies of big videos); otherwise throws `.notResponding` when it runs out.
-    static func run<T>(timeout: TimeInterval? = nil, _ work: @escaping () throws -> T) async throws -> T {
+    static func run<T: Sendable>(timeout: TimeInterval? = nil, _ work: @escaping @Sendable () throws -> T) async throws -> T {
         guard isAvailable else { throw DriveError.disconnected }
         return try await perform(timeout: timeout, work)
     }
 
     /// Async drive work (AVFoundation) with a timeout. A slot in a limiter held by a
     /// load that never returns would otherwise block every later thumbnail.
-    static func withTimeout<T>(_ timeout: TimeInterval, _ operation: @escaping () async throws -> T) async throws -> T {
+    static func withTimeout<T: Sendable>(_ timeout: TimeInterval, _ operation: @escaping @Sendable () async throws -> T) async throws -> T {
         guard isAvailable else { throw DriveError.disconnected }
         return try await withCheckedThrowingContinuation { continuation in
             let once = ResumeOnce(continuation)
@@ -63,8 +71,8 @@ enum DriveIO {
 
     /// Starts blocking work on the drive queue without waiting for it (e.g. a folder walk
     /// that reports results as it goes).
-    static func start(_ work: @escaping () -> Void) {
-        queue.async(execute: work)
+    static func start(_ work: @escaping @Sendable () -> Void) {
+        queue.addOperation(work)
     }
 
     /// Whether the drive at `url` answers within a few seconds. Never piles up: if the last
@@ -72,7 +80,7 @@ enum DriveIO {
     static func probe(_ url: URL) async -> Bool {
         guard probeRunning.exchange(true) == false else { return false }
         do {
-            return try await perform(timeout: 3) {
+            return try await perform(on: { probeQueue.async(execute: $0) }, timeout: 3) {
                 defer { probeRunning.value = false }
                 // Deliberately lenient: wrongly reporting "connected" only falls back to the
                 // timeouts, but wrongly reporting "gone" would block a working drive.
@@ -85,10 +93,14 @@ enum DriveIO {
         }
     }
 
-    private static func perform<T>(timeout: TimeInterval?, _ work: @escaping () throws -> T) async throws -> T {
+    private static func perform<T: Sendable>(
+        on schedule: (@escaping @Sendable () -> Void) -> Void = { queue.addOperation($0) },
+        timeout: TimeInterval?,
+        _ work: @escaping @Sendable () throws -> T
+    ) async throws -> T {
         try await withCheckedThrowingContinuation { continuation in
             let once = ResumeOnce(continuation)
-            queue.async {
+            schedule {
                 once.resume(with: Result { try work() })
             }
             if let timeout {
@@ -101,7 +113,7 @@ enum DriveIO {
 }
 
 /// Resumes a continuation at most once, whichever of the work or the timeout finishes first.
-private final class ResumeOnce<T>: @unchecked Sendable {
+private final class ResumeOnce<T: Sendable>: @unchecked Sendable {
     private let lock = NSLock()
     private var continuation: CheckedContinuation<T, Error>?
 

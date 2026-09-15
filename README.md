@@ -12,10 +12,12 @@ A personal iPhone app for browsing photos and videos on an external SSD, styled 
 6. With a free Apple ID, the app stops opening after 7 days. Press Run again to re-install it.
 
 ## Using it
-Plug in the SSD, tap **Open SSD**, and pick the drive (or any folder on it).
+Plug in the SSD, tap **Open SSD**, and pick the drive (or any folder on it). The app
+remembers it and opens it again at the next launch if it is plugged in.
 
 - Folders show as album cards with a cover; photos and videos fill a Photos-style grid.
-  Videos show their length in the corner.
+  Videos show their length in the corner. Pull down to rescan a folder after changing
+  files on the drive elsewhere.
 - The sort button (top right) orders photos and videos by newest, oldest, name or size,
   and folders by name or date. Both are remembered between launches. The date orders
   group the grid under sticky day headers.
@@ -34,6 +36,16 @@ Plug in the SSD, tap **Open SSD**, and pick the drive (or any folder on it).
 name. After adding or removing files, run `xcodegen generate` (`brew install xcodegen`) —
 otherwise a new file will not be compiled.
 
+Unit tests live in `PlugrollTests/`. Run them with ⌘U, or:
+
+```sh
+xcodebuild test -project Plugroll.xcodeproj -scheme Plugroll \
+  -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO
+```
+
+Thumbnails and video lengths are cached on the phone (encrypted while it is locked),
+capped at about 500 MB and trimmed at launch.
+
 ## Building without Xcode
 
 `.github/workflows/build-ipa.yml` builds the app on GitHub's Macs and publishes an
@@ -42,8 +54,9 @@ Apple ID cannot sign there anyway. **SideStore** or **AltStore** signs the `.ipa
 phone with your Apple ID, which keeps the usual free-account limits: the app stops
 opening after 7 days unless it is refreshed, and three sideloaded apps at a time.
 
-1. Push this repository to GitHub. Every push to `main` builds it.
+1. Push this repository to GitHub. Every push to `main` runs the tests and builds it.
 2. On the phone, open the repository's **Releases** page and download `Plugroll.ipa`.
+   `Plugroll.ipa.sha256` next to it has its checksum.
 3. Open it in SideStore and let it install.
 
 macOS runner minutes are free on a public repository. On a private one they bill at 10x

@@ -1,6 +1,16 @@
 import Photos
 import UIKit
 
+enum ExportError: LocalizedError {
+    case notAFile
+
+    var errorDescription: String? {
+        switch self {
+        case .notAFile: return "It isn't a regular file, so it was left alone."
+        }
+    }
+}
+
 /// File work behind Share, Save to Photos and Delete.
 enum ExportService {
     /// Files are copied off the drive before handing them to Photos or the share sheet:
@@ -27,12 +37,46 @@ enum ExportService {
     static func stageCopy(of item: MediaItem, index: Int, in batch: URL) async throws -> URL {
         let folder = batch.appendingPathComponent(String(index), isDirectory: true)
         let destination = folder.appendingPathComponent(item.name)
-        // No timeout: copying a large video legitimately takes a while.
-        try await DriveIO.run {
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try FileManager.default.copyItem(at: item.url, to: destination)
+        let cancelled = LockedValue(false)
+        // No timeout: copying a large video legitimately takes a while. Cancel stops it
+        // between chunks instead.
+        try await withTaskCancellationHandler {
+            try await DriveIO.run {
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                try copyFile(from: item.url, to: destination, isCancelled: { cancelled.value })
+            }
+        } onCancel: {
+            cancelled.value = true
         }
         return destination
+    }
+
+    /// Copies in chunks, checking `isCancelled` between them. A cancelled or failed copy
+    /// leaves no partial file behind.
+    private static func copyFile(from source: URL, to destination: URL, isCancelled: () -> Bool) throws {
+        let chunkSize = 4 * 1024 * 1024
+        let input = try FileHandle(forReadingFrom: source)
+        defer { try? input.close() }
+        guard FileManager.default.createFile(atPath: destination.path, contents: nil) else {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSURLErrorKey: destination])
+        }
+        do {
+            let output = try FileHandle(forWritingTo: destination)
+            defer { try? output.close() }
+            while true {
+                if isCancelled() { throw CancellationError() }
+                guard let chunk = try input.read(upToCount: chunkSize), !chunk.isEmpty else { break }
+                try output.write(contentsOf: chunk)
+            }
+            try output.synchronize()
+        } catch {
+            try? FileManager.default.removeItem(at: destination)
+            throw error
+        }
+        // Keep the original date, as copyItem did: some apps show it for shared files.
+        if let modified = try? source.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate {
+            try? FileManager.default.setAttributes([.modificationDate: modified], ofItemAtPath: destination.path)
+        }
     }
 
     /// Adds a staged copy to the photo library, moving the file in rather than copying it again.
@@ -51,9 +95,26 @@ enum ExportService {
 
     /// Permanently deletes the file from the drive.
     static func deleteFile(_ item: MediaItem) async throws {
-        try await DriveIO.run(timeout: 15) {
-            try FileManager.default.removeItem(at: item.url)
+        do {
+            try await DriveIO.run(timeout: 15) {
+                // Looked up fresh, right before deleting: removeItem would also take a whole
+                // folder with it, so anything other than a plain file is refused.
+                var fresh = item.url
+                fresh.removeAllCachedResourceValues()
+                guard try fresh.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true else {
+                    throw ExportError.notAFile
+                }
+                try FileManager.default.removeItem(at: fresh)
+            }
+        } catch DriveError.notResponding {
+            // The delete keeps going on the drive after the wait gives up, so it may have
+            // happened anyway. Only report a failure if the file is really still there.
+            let stillThere = try? await DriveIO.run(timeout: 3) {
+                FileManager.default.fileExists(atPath: item.url.path)
+            }
+            if stillThere != false { throw DriveError.notResponding }
         }
+        await FolderScanner.forgetCovers(showing: item.url)
     }
 
     @MainActor

@@ -44,6 +44,7 @@ struct RootView: View {
             }
         }
         .animation(.spring(duration: 0.35), value: appState.isDriveConnected)
+        .task { await appState.restoreLastDrive() }
         .fileImporter(isPresented: $showPicker, allowedContentTypes: [.folder]) { result in
             switch result {
             case .success(let url): appState.open(url)
