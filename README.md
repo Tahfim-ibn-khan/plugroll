@@ -24,6 +24,7 @@ remembers it and opens it again at the next launch if it is plugged in.
 - Search by name at the top: **This Folder** filters instantly, **All Subfolders** searches
   everything below the current folder.
 - **Select** lets you tap or drag across items, then Share or Delete.
+  Share is also how you save to Photos: pick **Save Image** or **Save Video** in the sheet.
   Delete removes files from the drive permanently.
 - Tap an item for the full-screen viewer: swipe between items, pinch or double-tap photos
   to zoom, and tap once to hide the bars. The bottom bar has Share and Delete; the
