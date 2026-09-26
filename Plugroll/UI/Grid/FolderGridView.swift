@@ -13,6 +13,9 @@ struct FolderGridView: UIViewControllerRepresentable {
     var onSelectionChange: ([MediaItem]) -> Void = { _ in }
     /// Pull to refresh. The spinner stays until this returns.
     var onRefresh: (() async -> Void)?
+    /// Shows the Favourites card at the top, on the drive's own screen.
+    var favouritesCount: Int?
+    var onOpenFavourites: (() -> Void)?
 
     func makeUIViewController(context: Context) -> FolderGridViewController {
         FolderGridViewController()
@@ -23,7 +26,8 @@ struct FolderGridView: UIViewControllerRepresentable {
         controller.onOpenItem = onOpenItem
         controller.onSelectionChange = onSelectionChange
         controller.onRefresh = onRefresh
-        controller.apply(folders: folders, groups: groups)
+        controller.onOpenFavourites = onOpenFavourites
+        controller.apply(favouritesCount: favouritesCount, folders: folders, groups: groups)
         controller.setSelecting(isSelecting)
         controller.reloadIfNeeded(token: reloadToken)
     }
@@ -37,6 +41,7 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
     }
 
     private enum Row: Hashable {
+        case favourites(Int)
         case folder(FolderEntry)
         case media(MediaItem)
     }
@@ -45,7 +50,9 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
     var onOpenItem: ((MediaItem) -> Void)?
     var onSelectionChange: (([MediaItem]) -> Void)?
     var onRefresh: (() async -> Void)?
+    var onOpenFavourites: (() -> Void)?
 
+    private var favouritesCount: Int?
     private var isSelecting = false
     private var reloadToken = 0
     /// Count line shown at the right of each section header.
@@ -81,11 +88,16 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
         let folderRegistration = UICollectionView.CellRegistration<FolderCell, FolderEntry> { cell, _, folder in
             cell.configure(folder)
         }
+        let favouritesRegistration = UICollectionView.CellRegistration<FolderCell, Int> { cell, _, count in
+            cell.configureFavourites(count: count)
+        }
         let mediaRegistration = UICollectionView.CellRegistration<MediaCell, MediaItem> { cell, _, item in
             cell.configure(item)
         }
         let dataSource = UICollectionViewDiffableDataSource<Section, Row>(collectionView: collectionView) { collectionView, indexPath, row in
             switch row {
+            case .favourites(let count):
+                return collectionView.dequeueConfiguredReusableCell(using: favouritesRegistration, for: indexPath, item: count)
             case .folder(let folder):
                 return collectionView.dequeueConfiguredReusableCell(using: folderRegistration, for: indexPath, item: folder)
             case .media(let item):
@@ -113,8 +125,9 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
         applySnapshot()
     }
 
-    func apply(folders: [FolderEntry], groups: [MediaGroup]) {
-        guard folders != self.folders || groups != self.groups else { return }
+    func apply(favouritesCount: Int?, folders: [FolderEntry], groups: [MediaGroup]) {
+        guard favouritesCount != self.favouritesCount || folders != self.folders || groups != self.groups else { return }
+        self.favouritesCount = favouritesCount
         self.folders = folders
         self.groups = groups
         guard dataSource != nil else { return }
@@ -128,8 +141,11 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
 
         var snapshot = NSDiffableDataSourceSnapshot<Section, Row>()
         var details: [Section: String] = [:]
-        if !folders.isEmpty {
+        if favouritesCount != nil || !folders.isEmpty {
             snapshot.appendSections([.folders])
+            if let favouritesCount {
+                snapshot.appendItems([.favourites(favouritesCount)], toSection: .folders)
+            }
             snapshot.appendItems(folders.map(Row.folder), toSection: .folders)
             details[.folders] = folders.count == 1 ? "1 Folder" : "\(folders.count) Folders"
         }
@@ -313,6 +329,7 @@ final class FolderGridViewController: UIViewController, UICollectionViewDelegate
         collectionView.deselectItem(at: indexPath, animated: true)
         guard let row = dataSource?.itemIdentifier(for: indexPath) else { return }
         switch row {
+        case .favourites: onOpenFavourites?()
         case .folder(let folder): onOpenFolder?(folder)
         case .media(let item): onOpenItem?(item)
         }

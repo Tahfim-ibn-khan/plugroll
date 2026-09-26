@@ -40,6 +40,7 @@ final class AppState {
         setDriveConnected(true)
         startMonitoring(url)
         saveBookmark(for: url)
+        Favourites.shared.setRoot(url)
     }
 
     /// Reopens the drive picked last time, if it is plugged in. Otherwise the bookmark is
@@ -72,6 +73,7 @@ final class AppState {
         }
         isAccessingRoot = false
         rootURL = nil
+        Favourites.shared.setRoot(nil)
         path = []
         setDriveConnected(true)
     }

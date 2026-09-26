@@ -33,6 +33,10 @@ struct MediaViewer: View {
         currentIndex.map { items[$0] }
     }
 
+    private var isCurrentFavourite: Bool {
+        currentItem.map { Favourites.shared.isFavourite($0) } ?? false
+    }
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -208,6 +212,12 @@ struct MediaViewer: View {
         HStack(spacing: 0) {
             actionButton("square.and.arrow.up", label: "Share") {
                 if let currentItem { actions.share([currentItem]) }
+            }
+            actionButton(
+                isCurrentFavourite ? "heart.fill" : "heart",
+                label: isCurrentFavourite ? "Remove from Favourites" : "Favourite"
+            ) {
+                if let currentItem { Favourites.shared.toggle([currentItem]) }
             }
             actionButton("square.and.arrow.down", label: "Save") {
                 if let currentItem { actions.saveToPhotos([currentItem]) }

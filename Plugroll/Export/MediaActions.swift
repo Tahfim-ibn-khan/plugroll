@@ -139,7 +139,10 @@ final class MediaActions {
             }
 
             progress = nil
-            if !deleted.isEmpty { onDeleted(deleted) }
+            if !deleted.isEmpty {
+                Favourites.shared.setFavourite(false, for: deleted)
+                onDeleted(deleted)
+            }
             if let lastError {
                 failure = Failure(
                     title: "Couldn't Delete",

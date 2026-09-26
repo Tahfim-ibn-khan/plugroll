@@ -34,7 +34,11 @@ struct FolderScreen: View {
     @State private var isSelecting = false
     @State private var selection: [MediaItem] = []
     @State private var confirmingDelete = false
+    @State private var showingFavourites = false
     @State private var actions = MediaActions()
+
+    /// The drive's own screen, where the Favourites album sits.
+    private var isRoot: Bool { folder == appState.rootURL }
 
     private var trimmedQuery: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -66,7 +70,9 @@ struct FolderScreen: View {
                             viewer = ViewerSession(items: groups.flatMap(\.items), start: item)
                         },
                         onSelectionChange: { selection = $0 },
-                        onRefresh: { await refreshListing() }
+                        onRefresh: { await refreshListing() },
+                        favouritesCount: isRoot && !isFiltering ? Favourites.shared.count : nil,
+                        onOpenFavourites: { showingFavourites = true }
                     )
                     .ignoresSafeArea()
                 }
@@ -142,6 +148,9 @@ struct FolderScreen: View {
             Text("This permanently deletes the files from the drive. It can't be undone.")
         }
         .mediaActionsOverlay(actions)
+        .navigationDestination(isPresented: $showingFavourites) {
+            FavouritesScreen().environment(appState)
+        }
         .task(id: LoadKey(folder: folder, reload: reloadCount, reconnect: appState.reconnectCount)) {
             // Already showing this folder: a reconnect doesn't need to rescan it.
             if listing != nil, errorMessage == nil, reloadCount == 0 { return }
@@ -267,6 +276,13 @@ struct FolderScreen: View {
             .monospacedDigit()
 
         Spacer()
+
+        Button {
+            Favourites.shared.toggle(selection)
+        } label: {
+            Image(systemName: Favourites.shared.areAllFavourite(selection) ? "heart.fill" : "heart")
+        }
+        .disabled(selection.isEmpty)
 
         Button {
             actions.saveToPhotos(selection)

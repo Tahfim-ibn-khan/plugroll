@@ -23,10 +23,13 @@ remembers it and opens it again at the next launch if it is plugged in.
   group the grid under sticky day headers.
 - Search by name at the top: **This Folder** filters instantly, **All Subfolders** searches
   everything below the current folder.
-- **Select** lets you tap or drag across items, then Share, Save to Photos or Delete.
-  Delete removes files from the drive permanently.
+- **Select** lets you tap or drag across items, then Share, Favourite, Save to Photos
+  or Delete. Delete removes files from the drive permanently.
+- Tap the heart on a photo or video (in the viewer, or on a selection) to make it a
+  favourite. The **Favourites** album at the top of the drive's first screen shows them
+  all, and each drive keeps its own list.
 - Tap an item for the full-screen viewer: swipe between items, pinch or double-tap photos
-  to zoom, and tap once to hide the bars. The bottom bar has Share, Save and Delete; the
+  to zoom, and tap once to hide the bars. The bottom bar has Share, Favourite, Save and Delete; the
   top-right button rotates the screen, even with Portrait Lock on.
 - Videos play in a Photos-style player: scrub bar, play/pause, skip 10 seconds (or
   double-tap a side), mute and AirPlay. Controls hide on their own while playing.

@@ -8,6 +8,11 @@ final class FolderCell: UICollectionViewCell {
     private var loadTask: Task<Void, Never>?
     private var folderURL: URL?
 
+    private static let heart = UIImage(
+        systemName: "heart.fill",
+        withConfiguration: UIImage.SymbolConfiguration(pointSize: 40)
+    )
+
     private static let placeholder = UIImage(
         systemName: "folder.fill",
         withConfiguration: UIImage.SymbolConfiguration(pointSize: 40)
@@ -55,6 +60,8 @@ final class FolderCell: UICollectionViewCell {
     func configure(_ folder: FolderEntry) {
         folderURL = folder.url
         nameLabel.text = folder.name
+        coverView.tintColor = .tertiaryLabel
+        coverView.alpha = 1
         showPlaceholder()
 
         loadTask?.cancel()
@@ -66,6 +73,18 @@ final class FolderCell: UICollectionViewCell {
             self.coverView.contentMode = .scaleAspectFill
             self.coverView.image = image
         }
+    }
+
+    /// The Favourites album: a heart instead of a cover.
+    func configureFavourites(count: Int) {
+        folderURL = nil
+        loadTask?.cancel()
+        loadTask = nil
+        nameLabel.text = "Favourites"
+        coverView.contentMode = .center
+        coverView.tintColor = .systemPink
+        coverView.image = Self.heart
+        coverView.alpha = count == 0 ? 0.6 : 1
     }
 
     private func showPlaceholder() {
