@@ -209,6 +209,9 @@ struct MediaViewer: View {
             actionButton("square.and.arrow.up", label: "Share") {
                 if let currentItem { actions.share([currentItem]) }
             }
+            actionButton("square.and.arrow.down", label: "Save") {
+                if let currentItem { actions.saveToPhotos([currentItem]) }
+            }
             actionButton("trash", label: "Delete") {
                 confirmingDelete = true
             }
