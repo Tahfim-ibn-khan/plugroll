@@ -29,8 +29,14 @@ remembers it and opens it again at the next launch if it is plugged in.
   favourite. The **Favourites** album at the top of the drive's first screen shows them
   all, and each drive keeps its own list.
 - Tap an item for the full-screen viewer: swipe between items, pinch or double-tap photos
-  to zoom, and tap once to hide the bars. The bottom bar has Share, Favourite, Save and Delete; the
+  to zoom, and tap once to hide the bars. The bottom bar has Share, Favourite, Edit, Save and Delete; the
   top-right button rotates the screen, even with Portrait Lock on.
+- **Edit** (in the viewer's bottom bar) opens a Photos-style editor. Photos and videos get
+  crop, straighten, rotate and flip, light and colour sliders (exposure, brightness,
+  contrast, highlights, shadows, saturation, vibrance, warmth, sharpness, vignette) and
+  filters; photos also get Auto, and videos get trim and mute. **Done** asks where to put
+  the result: a copy next to the original, replacing the original, or Photos. Edited RAW
+  photos become JPEGs, so they can only be saved as a copy or to Photos.
 - Videos play in a Photos-style player: scrub bar, play/pause, skip 10 seconds (or
   double-tap a side), mute and AirPlay. Controls hide on their own while playing.
 

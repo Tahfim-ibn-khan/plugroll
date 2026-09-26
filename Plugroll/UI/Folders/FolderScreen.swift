@@ -171,7 +171,12 @@ struct FolderScreen: View {
         .onChange(of: query) { _, _ in refreshDisplay() }
         .onChange(of: scope) { _, _ in refreshDisplay() }
         .fullScreenCover(item: $viewer) { session in
-            MediaViewer(items: session.items, start: session.start, onDeleted: remove)
+            MediaViewer(
+                items: session.items,
+                start: session.start,
+                onDeleted: remove,
+                onEdited: { Task { await refreshListing() } }
+            )
                 .environment(appState)
         }
     }

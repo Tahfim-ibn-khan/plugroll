@@ -6,7 +6,7 @@ import Foundation
 final class VideoDurationService: @unchecked Sendable {
     static let shared = VideoDurationService()
 
-    private let memory = NSCache<NSURL, NSNumber>()
+    private let memory = NSCache<NSString, NSNumber>()
     private let diskDirectory: URL
     private let limiter = AsyncLimiter(limit: 4)
 
@@ -17,7 +17,7 @@ final class VideoDurationService: @unchecked Sendable {
 
     /// Instant lookup (no disk or drive access), in seconds.
     func cachedDuration(for item: MediaItem) -> Double? {
-        memory.object(forKey: item.url as NSURL)?.doubleValue
+        memory.object(forKey: item.cacheKey as NSString)?.doubleValue
     }
 
     /// Memory cache → on-phone disk cache → read from the file on the drive.
@@ -27,7 +27,7 @@ final class VideoDurationService: @unchecked Sendable {
 
         let diskURL = diskDirectory.appendingPathComponent(item.cacheKey + ".txt")
         if let text = try? String(contentsOf: diskURL, encoding: .utf8), let seconds = Double(text) {
-            memory.setObject(NSNumber(value: seconds), forKey: item.url as NSURL)
+            memory.setObject(NSNumber(value: seconds), forKey: item.cacheKey as NSString)
             return seconds
         }
 
@@ -43,7 +43,7 @@ final class VideoDurationService: @unchecked Sendable {
         await limiter.release()
 
         guard let seconds, seconds.isFinite, seconds > 0 else { return nil }
-        memory.setObject(NSNumber(value: seconds), forKey: item.url as NSURL)
+        memory.setObject(NSNumber(value: seconds), forKey: item.cacheKey as NSString)
         try? String(seconds).write(to: diskURL, atomically: true, encoding: .utf8)
         return seconds
     }

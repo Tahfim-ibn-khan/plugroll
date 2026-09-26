@@ -72,7 +72,12 @@ struct FavouritesScreen: View {
         .task(id: appState.reconnectCount) { await load() }
         .onChange(of: appState.sort) { _, _ in refreshDisplay() }
         .fullScreenCover(item: $viewer) { session in
-            MediaViewer(items: session.items, start: session.start, onDeleted: remove)
+            MediaViewer(
+                items: session.items,
+                start: session.start,
+                onDeleted: remove,
+                onEdited: { Task { await load() } }
+            )
                 .environment(appState)
         }
     }

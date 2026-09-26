@@ -154,7 +154,7 @@ final class MediaActions {
         }
     }
 
-    private func showToast(_ message: String) {
+    func showToast(_ message: String) {
         toastTask?.cancel()
         toast = message
         toastTask = Task {

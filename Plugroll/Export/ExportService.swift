@@ -38,18 +38,25 @@ enum ExportService {
     static func stageCopy(of item: MediaItem, index: Int, in batch: URL) async throws -> URL {
         let folder = batch.appendingPathComponent(String(index), isDirectory: true)
         let destination = folder.appendingPathComponent(item.name)
+        try await copy(from: item.url, to: destination)
+        return destination
+    }
+
+    /// Copies a file to or from the drive. No timeout: copying a large video legitimately
+    /// takes a while. Cancelling the task stops it between chunks instead.
+    static func copy(from source: URL, to destination: URL) async throws {
         let cancelled = LockedValue(false)
-        // No timeout: copying a large video legitimately takes a while. Cancel stops it
-        // between chunks instead.
         try await withTaskCancellationHandler {
             try await DriveIO.run {
-                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-                try copyFile(from: item.url, to: destination, isCancelled: { cancelled.value })
+                try FileManager.default.createDirectory(
+                    at: destination.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                try copyFile(from: source, to: destination, isCancelled: { cancelled.value })
             }
         } onCancel: {
             cancelled.value = true
         }
-        return destination
     }
 
     /// Copies in chunks, checking `isCancelled` between them. A cancelled or failed copy
@@ -82,15 +89,19 @@ enum ExportService {
 
     /// Adds a staged copy to the photo library, moving the file in rather than copying it again.
     static func addToPhotoLibrary(_ fileURL: URL, item: MediaItem) async throws {
+        try await addToPhotoLibrary(fileURL, name: item.name, kind: item.kind)
+    }
+
+    static func addToPhotoLibrary(_ fileURL: URL, name: String, kind: MediaKind) async throws {
         try await PHPhotoLibrary.shared().performChanges {
             let options = PHAssetResourceCreationOptions()
             options.shouldMoveFile = true
-            options.originalFilename = item.name
+            options.originalFilename = name
             // Spelling out the type helps Photos with formats it can't guess from the
             // name alone, camera RAW especially.
             options.uniformTypeIdentifier = UTType(filenameExtension: fileURL.pathExtension.lowercased())?.identifier
             PHAssetCreationRequest.forAsset().addResource(
-                with: item.kind == .video ? .video : .photo,
+                with: kind == .video ? .video : .photo,
                 fileURL: fileURL,
                 options: options
             )

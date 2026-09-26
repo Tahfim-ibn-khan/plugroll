@@ -6,6 +6,8 @@ import UIKit
 struct MediaViewer: View {
     /// Tells the folder screen which files were deleted from here.
     let onDeleted: ([MediaItem]) -> Void
+    /// Tells the folder screen an edit was saved, so it can pick up new or changed files.
+    let onEdited: () -> Void
 
     @State private var items: [MediaItem]
     @State private var currentID: URL?
@@ -16,11 +18,19 @@ struct MediaViewer: View {
     @State private var controlsActivity = 0
     @State private var actions = MediaActions()
     @State private var confirmingDelete = false
+    /// The item open in the editor.
+    @State private var editing: MediaItem?
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
-    init(items: [MediaItem], start: MediaItem, onDeleted: @escaping ([MediaItem]) -> Void = { _ in }) {
+    init(
+        items: [MediaItem],
+        start: MediaItem,
+        onDeleted: @escaping ([MediaItem]) -> Void = { _ in },
+        onEdited: @escaping () -> Void = {}
+    ) {
         self.onDeleted = onDeleted
+        self.onEdited = onEdited
         _items = State(initialValue: items)
         _currentID = State(initialValue: start.id)
     }
@@ -94,6 +104,11 @@ struct MediaViewer: View {
         .statusBarHidden()
         .persistentSystemOverlays(chromeVisible ? .automatic : .hidden)
         .mediaActionsOverlay(actions)
+        .fullScreenCover(item: $editing) { item in
+            MediaEditor(item: item) { result in
+                applyEdit(result, to: item)
+            }
+        }
         .confirmationDialog(
             currentItem?.kind == .video ? "Delete This Video?" : "Delete This Photo?",
             isPresented: $confirmingDelete,
@@ -149,6 +164,29 @@ struct MediaViewer: View {
         let model = PlayerModel(url: item.url, knownDuration: VideoDurationService.shared.cachedDuration(for: item))
         player = model
         model.play()
+    }
+
+    /// Shows what an edit saved: a copy opens next to the original, and a replaced
+    /// original reloads in place.
+    private func applyEdit(_ result: EditResult, to original: MediaItem) {
+        let index = items.firstIndex { $0.id == original.id }
+        switch result {
+        case .copy(let copy):
+            items.insert(copy, at: index.map { $0 + 1 } ?? items.endIndex)
+            currentID = copy.id
+            updatePlayer()
+            actions.showToast("Saved a Copy")
+        case .replaced(let updated):
+            if let index { items[index] = updated }
+            // Same name, new contents: the old player still holds the old file.
+            player?.tearDown()
+            player = nil
+            updatePlayer()
+            actions.showToast("Original Replaced")
+        case .photos:
+            actions.showToast("Saved to Photos")
+        }
+        onEdited()
     }
 
     private func deleteCurrent() {
@@ -218,6 +256,11 @@ struct MediaViewer: View {
                 label: isCurrentFavourite ? "Remove from Favourites" : "Favourite"
             ) {
                 if let currentItem { Favourites.shared.toggle([currentItem]) }
+            }
+            actionButton("slider.horizontal.3", label: "Edit") {
+                guard let currentItem else { return }
+                player?.pause()
+                editing = currentItem
             }
             actionButton("square.and.arrow.down", label: "Save") {
                 if let currentItem { actions.saveToPhotos([currentItem]) }
@@ -294,6 +337,8 @@ private struct PhotoPage: View {
     let onSingleTap: () -> Void
 
     @State private var image: UIImage?
+    /// Which version of the file `image` shows, so a replaced file loads again.
+    @State private var loadedKey: String?
     @State private var loadFailed = false
     @Environment(AppState.self) private var appState
 
@@ -319,10 +364,12 @@ private struct PhotoPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Reloads when the drive comes back, in case the first try failed.
-        .task(id: "\(item.id.path)#\(appState.reconnectCount)") {
-            guard image == nil else { return }
+        .task(id: "\(item.cacheKey)#\(appState.reconnectCount)") {
+            guard image == nil || loadedKey != item.cacheKey else { return }
+            if loadedKey != item.cacheKey { image = nil }
             loadFailed = false
             image = await ThumbnailService.displayImage(for: item)
+            loadedKey = item.cacheKey
             loadFailed = image == nil
         }
         .onDisappear {
@@ -374,10 +421,9 @@ private struct VideoPage: View {
                 onSingleTap()
             }
         }
-        .task(id: item.id) {
-            if thumbnail == nil {
-                thumbnail = await ThumbnailService.shared.thumbnail(for: item)
-            }
+        // Keyed by the file's version, so a replaced video shows its new first frame.
+        .task(id: item.cacheKey) {
+            thumbnail = await ThumbnailService.shared.thumbnail(for: item)
         }
     }
 

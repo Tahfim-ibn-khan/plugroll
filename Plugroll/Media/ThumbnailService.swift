@@ -5,7 +5,8 @@ import UIKit
 final class ThumbnailService: @unchecked Sendable {
     static let shared = ThumbnailService()
 
-    private let memory = NSCache<NSURL, UIImage>()
+    /// Keyed by path, size and date, so a file replaced by an edit gets a fresh thumbnail.
+    private let memory = NSCache<NSString, UIImage>()
     private let diskDirectory: URL
     private let limiter = AsyncLimiter(limit: 4)
     private let thumbnailPixelSize: CGFloat = 400
@@ -21,7 +22,7 @@ final class ThumbnailService: @unchecked Sendable {
 
     /// Instant lookup for already-loaded thumbnails (no disk or drive access).
     func cachedThumbnail(for item: MediaItem) -> UIImage? {
-        memory.object(forKey: item.url as NSURL)
+        memory.object(forKey: item.cacheKey as NSString)
     }
 
     /// Memory cache → on-phone disk cache → generate from the file on the drive.
@@ -55,7 +56,7 @@ final class ThumbnailService: @unchecked Sendable {
 
     private func store(_ image: UIImage, for item: MediaItem) {
         let bytes = image.cgImage.map { $0.bytesPerRow * $0.height } ?? 0
-        memory.setObject(image, forKey: item.url as NSURL, cost: bytes)
+        memory.setObject(image, forKey: item.cacheKey as NSString, cost: bytes)
     }
 
     /// Screen-sized image for the full-screen viewer. Generous enough to stay sharp
