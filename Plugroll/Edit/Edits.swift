@@ -165,6 +165,15 @@ struct Edits: Equatable, Sendable {
 
     var isUnchanged: Bool { self == Edits() }
 
+    /// Nothing but a trim or mute: the video can be cut without re-encoding a frame.
+    var isTrimOnly: Bool {
+        var picture = self
+        picture.trimStart = 0
+        picture.trimEnd = nil
+        picture.muted = false
+        return picture == Edits()
+    }
+
     /// Whether anything moves or trims the picture, as opposed to only recolouring it.
     var changesGeometry: Bool {
         quarterTurns % 4 != 0 || flipped || straighten != 0 || crop != Self.fullCrop

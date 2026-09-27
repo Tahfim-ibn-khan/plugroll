@@ -149,7 +149,7 @@ enum FolderScanner {
         return (nil, !hadError.value)
     }
 
-    private static func makeItem(_ url: URL, values: URLResourceValues?) -> MediaItem? {
+    static func makeItem(_ url: URL, values: URLResourceValues?) -> MediaItem? {
         // Only plain files: anything unreadable or odd (a folder named "clip.mov", a symlink)
         // must never become an item, since Delete removes items from the drive.
         guard values?.isRegularFile == true, let kind = MediaKind(url: url) else { return nil }

@@ -35,6 +35,7 @@ struct FolderScreen: View {
     @State private var selection: [MediaItem] = []
     @State private var confirmingDelete = false
     @State private var showingFavourites = false
+    @State private var showingStorage = false
     @State private var actions = MediaActions()
 
     /// The drive's own screen, where the Favourites album sits.
@@ -111,6 +112,15 @@ struct FolderScreen: View {
             Text("All Subfolders").tag(SearchScope.allSubfolders)
         }
         .toolbar {
+            if !isSelecting {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingStorage = true
+                    } label: {
+                        StorageGauge(space: appState.driveSpace, showsFreeSpace: isRoot)
+                    }
+                }
+            }
             if let listing, !(listing.items.isEmpty && listing.folders.isEmpty), !isSelecting {
                 ToolbarItem(placement: .topBarTrailing) {
                     sortMenu
@@ -151,6 +161,9 @@ struct FolderScreen: View {
         .navigationDestination(isPresented: $showingFavourites) {
             FavouritesScreen().environment(appState)
         }
+        .navigationDestination(isPresented: $showingStorage) {
+            StorageScreen().environment(appState)
+        }
         .task(id: LoadKey(folder: folder, reload: reloadCount, reconnect: appState.reconnectCount)) {
             // Already showing this folder: a reconnect doesn't need to rescan it.
             if listing != nil, errorMessage == nil, reloadCount == 0 { return }
@@ -166,6 +179,9 @@ struct FolderScreen: View {
         .task(id: SearchKey(query: trimmedQuery, scope: scope)) {
             await runDeepSearch()
         }
+        .onChange(of: appState.contentVersion) { _, _ in
+            Task { await refreshListing() }
+        }
         .onChange(of: appState.sort) { _, _ in refreshDisplay() }
         .onChange(of: appState.folderSort) { _, _ in refreshDisplay() }
         .onChange(of: query) { _, _ in refreshDisplay() }
@@ -175,7 +191,10 @@ struct FolderScreen: View {
                 items: session.items,
                 start: session.start,
                 onDeleted: remove,
-                onEdited: { Task { await refreshListing() } }
+                onEdited: {
+                    Task { await refreshListing() }
+                    appState.refreshSpace()
+                }
             )
                 .environment(appState)
         }
@@ -261,6 +280,8 @@ struct FolderScreen: View {
         listing?.items.removeAll { gone.contains($0.url) }
         deepResults?.items.removeAll { gone.contains($0.url) }
         refreshDisplay()
+        appState.storage.remove(deleted)
+        appState.refreshSpace()
     }
 
     // MARK: - Toolbar

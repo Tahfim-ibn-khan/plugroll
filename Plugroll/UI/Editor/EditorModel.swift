@@ -64,10 +64,17 @@ final class EditorModel {
     var failure: String?
     @ObservationIgnored private var saveTask: Task<Void, Never>?
 
-    init(item: MediaItem) {
+    /// What Replace Original does with the original. By default it's removed.
+    let replaceOptions: EditExporter.ReplaceOptions
+
+    init(item: MediaItem, replaceOptions: EditExporter.ReplaceOptions = .init()) {
         self.item = item
+        self.replaceOptions = replaceOptions
         mode = item.kind == .video ? .trim : .adjust
     }
+
+    /// Replace Original keeps the old version in Recently Deleted.
+    var replaceKeepsOriginal: Bool { replaceOptions.recentlyDeletedRoot != nil }
 
     var isVideo: Bool { item.kind == .video }
     var modes: [Mode] { isVideo ? Mode.allCases : [.adjust, .filters, .crop] }
@@ -341,7 +348,7 @@ final class EditorModel {
                     rendered = try await EditExporter.renderPhoto(item, edits: edits, autoFilters: filters.value, in: batch)
                 }
                 try Task.checkCancellation()
-                let result = try await EditExporter.save(rendered, for: item, to: destination)
+                let result = try await EditExporter.save(rendered, for: item, to: destination, options: replaceOptions)
                 completion(result)
             } catch is CancellationError {
                 return

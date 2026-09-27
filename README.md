@@ -40,6 +40,24 @@ remembers it and opens it again at the next launch if it is plugged in.
 - Videos play in a Photos-style player: scrub bar, play/pause, skip 10 seconds (or
   double-tap a side), mute and AirPlay. Controls hide on their own while playing.
 
+## Storage
+The ring at the top left of every folder shows how full the drive is (the drive's first
+screen also shows how much is free). Tap it for the **Storage** screen:
+
+- **Scan Drive** looks through every photo and video once. Later scans only look at new
+  or changed files.
+- **Duplicates** (exact copies), **Similar Photos** and **Similar Videos** show each set
+  with its best file marked. Tap files to mark them for deletion. One file in every set is
+  always kept, and nothing is deleted until you confirm.
+- **Big Videos** lists videos of 500 MB or more. **Trim** cuts parts away without losing
+  quality. **Compress** re-encodes the video smaller, and shows an estimate first.
+- **Largest Files**, **Folders by Size**, **Screenshots** and **Blurry & Dark** help find
+  the rest.
+- Files deleted from these screens go to **Recently Deleted**, a hidden folder on the
+  drive. You can restore them for 30 days, then they are deleted for good. Empty it to get
+  the space back sooner. Delete in the grid and viewer still deletes files right away, as
+  before.
+
 ## Project file
 `Plugroll.xcodeproj` is generated from `project.yml` and lists every source file by
 name. After adding or removing files, run `xcodegen generate` (`brew install xcodegen`) —

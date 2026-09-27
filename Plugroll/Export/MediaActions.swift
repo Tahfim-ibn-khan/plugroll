@@ -154,6 +154,42 @@ final class MediaActions {
         }
     }
 
+    /// Like Delete, but the files go to the drive's Recently Deleted folder, where they
+    /// can be restored for 30 days. Used by the storage cleanup screens.
+    func moveToRecentlyDeleted(_ items: [MediaItem], root: URL, onMoved: @escaping ([MediaItem]) -> Void) {
+        guard !items.isEmpty, !isBusy else { return }
+        progress = Progress(title: "Moving to Recently Deleted", completed: 0, total: items.count)
+
+        work = Task {
+            var moved: [MediaItem] = []
+            var failed = 0
+            var lastError: Error?
+            for (index, item) in items.enumerated() {
+                if Task.isCancelled { break }
+                do {
+                    _ = try await RecentlyDeleted.trash(item, root: root)
+                    moved.append(item)
+                } catch {
+                    failed += 1
+                    lastError = error
+                }
+                progress?.completed = index + 1
+            }
+
+            progress = nil
+            if !moved.isEmpty { onMoved(moved) }
+            if let lastError {
+                failure = Failure(
+                    title: "Couldn't Delete",
+                    message: "\(Self.count(failed)) couldn't be moved. The drive may be read-only (for example NTFS). \(lastError.localizedDescription)"
+                )
+            } else if !moved.isEmpty {
+                let bytes = moved.reduce(0) { $0 + $1.fileSize }
+                showToast("Moved \(Self.count(moved.count)) (\(ByteFormat.string(bytes))) to Recently Deleted")
+            }
+        }
+    }
+
     func showToast(_ message: String) {
         toastTask?.cancel()
         toast = message

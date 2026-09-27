@@ -11,8 +11,12 @@ struct MediaEditor: View {
     @State private var confirmingDiscard = false
     @Environment(\.dismiss) private var dismiss
 
-    init(item: MediaItem, onSaved: @escaping (EditResult) -> Void) {
-        self.init(model: EditorModel(item: item), onSaved: onSaved)
+    init(
+        item: MediaItem,
+        replaceOptions: EditExporter.ReplaceOptions = .init(),
+        onSaved: @escaping (EditResult) -> Void
+    ) {
+        self.init(model: EditorModel(item: item, replaceOptions: replaceOptions), onSaved: onSaved)
     }
 
     /// With a model set up beforehand (a chosen tool or edits), for previews and tests.
@@ -51,9 +55,11 @@ struct MediaEditor: View {
             Button("Save to Photos") { save(.photos) }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text(model.canReplaceOriginal
-                 ? "A copy keeps the original as it is. Replacing it can't be undone."
-                 : "This format can't be written back, so the original stays as it is.")
+            Text(!model.canReplaceOriginal
+                 ? "This format can't be written back, so the original stays as it is."
+                 : model.replaceKeepsOriginal
+                 ? "A copy keeps the original as it is. Replacing it moves the original to Recently Deleted."
+                 : "A copy keeps the original as it is. Replacing it can't be undone.")
         }
         .confirmationDialog("Discard Changes?", isPresented: $confirmingDiscard, titleVisibility: .visible) {
             Button("Discard Changes", role: .destructive) { dismiss() }

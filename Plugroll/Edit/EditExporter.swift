@@ -65,7 +65,7 @@ enum EditExporter {
         }
     }
 
-    private static func videoType(forExtension ext: String) -> AVFileType {
+    static func videoType(forExtension ext: String) -> AVFileType {
         switch ext.lowercased() {
         case "mp4": return .mp4
         case "m4v": return .m4v
@@ -152,16 +152,41 @@ enum EditExporter {
         progress: @escaping @Sendable (Double) -> Void
     ) async throws -> URL {
         let trimmed = try await VideoEditing.trimmedAsset(from: source, edits: edits)
-        let videoComposition = try await VideoEditing.composition(for: trimmed, edits: edits)
-        let preset = await VideoEditing.isHEVC(source) ? AVAssetExportPresetHEVCHighestQuality : AVAssetExportPresetHighestQuality
-        guard let session = AVAssetExportSession(asset: trimmed, presetName: preset) else {
-            throw EditExportError.exportFailed
+        let fileType = videoType(forExtension: ext)
+        let session: AVAssetExportSession
+        if edits.isTrimOnly, let passthrough = await passthroughSession(for: trimmed, fileType: fileType) {
+            // Only cut: the frames are copied as they are, which is fast and loses nothing.
+            session = passthrough
+        } else {
+            let videoComposition = try await VideoEditing.composition(for: trimmed, edits: edits)
+            let preset = await VideoEditing.isHEVC(source) ? AVAssetExportPresetHEVCHighestQuality : AVAssetExportPresetHighestQuality
+            guard let encoding = AVAssetExportSession(asset: trimmed, presetName: preset) else {
+                throw EditExportError.exportFailed
+            }
+            encoding.videoComposition = videoComposition
+            session = encoding
         }
-        session.videoComposition = videoComposition
         // Keeps the recording date and place.
         session.metadata = (try? await source.load(.metadata)) ?? []
 
-        let output = batch.appendingPathComponent("edited.\(ext)")
+        return try await export(session, to: batch.appendingPathComponent("edited.\(ext)"), as: fileType, progress: progress)
+    }
+
+    /// A session that copies the frames without re-encoding, if the file type allows it.
+    static func passthroughSession(for asset: AVAsset, fileType: AVFileType) async -> AVAssetExportSession? {
+        guard let session = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetPassthrough),
+              await session.compatibleFileTypes.contains(fileType)
+        else { return nil }
+        return session
+    }
+
+    /// Runs an export session, reporting 0...1 to `progress`.
+    static func export(
+        _ session: AVAssetExportSession,
+        to output: URL,
+        as fileType: AVFileType,
+        progress: @escaping @Sendable (Double) -> Void
+    ) async throws -> URL {
         let states = session.states(updateInterval: 0.2)
         let watcher = Task {
             for await state in states {
@@ -171,15 +196,29 @@ enum EditExporter {
             }
         }
         defer { watcher.cancel() }
-        try await session.export(to: output, as: videoType(forExtension: ext))
+        try await session.export(to: output, as: fileType)
         progress(1)
         return output
     }
 
     // MARK: - Saving
 
+    /// What happens to the original when an edit replaces it.
+    struct ReplaceOptions: Sendable {
+        /// Set to the drive's root to move the original into Recently Deleted instead of
+        /// removing it.
+        var recentlyDeletedRoot: URL?
+        /// Gives the new file the original's date, so it stays in its place in the grid.
+        var keepsDate = false
+    }
+
     /// Puts a rendered file where the user asked. The rendered file is used up.
-    static func save(_ rendered: URL, for item: MediaItem, to destination: EditDestination) async throws -> EditResult {
+    static func save(
+        _ rendered: URL,
+        for item: MediaItem,
+        to destination: EditDestination,
+        options: ReplaceOptions = ReplaceOptions()
+    ) async throws -> EditResult {
         switch destination {
         case .photos:
             let name = item.url.deletingPathExtension().lastPathComponent + "." + rendered.pathExtension
@@ -200,7 +239,12 @@ enum EditExporter {
 
         case .replaceOriginal:
             guard canReplaceOriginal(item) else { throw EditExportError.cantReplace }
-            try await replace(item.url, with: rendered)
+            try await replace(
+                item.url,
+                with: rendered,
+                keepingIn: options.recentlyDeletedRoot.map { ($0, item) },
+                date: options.keepsDate ? item.modified : nil
+            )
             return .replaced(try await mediaItem(at: item.url, kind: item.kind))
         }
     }
@@ -218,7 +262,14 @@ enum EditExporter {
 
     /// Copies the edit onto the drive under a hidden name first, then swaps it in by
     /// renaming, so a failed copy never leaves the original half-overwritten.
-    static func replace(_ original: URL, with rendered: URL) async throws {
+    /// With `keepingIn`, the original goes to that drive's Recently Deleted rather than
+    /// being removed; if that fails, the swap is undone. `date` sets the new file's date.
+    static func replace(
+        _ original: URL,
+        with rendered: URL,
+        keepingIn recentlyDeleted: (root: URL, item: MediaItem)? = nil,
+        date: Date? = nil
+    ) async throws {
         let folder = original.deletingLastPathComponent()
         let token = UUID().uuidString
         let incoming = folder.appendingPathComponent(".\(original.lastPathComponent).\(token).plugroll-edit")
@@ -241,7 +292,27 @@ enum EditExporter {
                 try? files.removeItem(at: incoming)
                 throw error
             }
-            try? files.removeItem(at: outgoing)
+            if let date {
+                try? files.setAttributes([.modificationDate: date], ofItemAtPath: original.path)
+            }
+            if let recentlyDeleted {
+                do {
+                    _ = try RecentlyDeleted.moveIn(
+                        file: outgoing,
+                        recordingAs: original,
+                        root: recentlyDeleted.root,
+                        modified: recentlyDeleted.item.modified,
+                        size: recentlyDeleted.item.fileSize
+                    )
+                } catch {
+                    // Swap back, so the original is never lost.
+                    try? files.removeItem(at: original)
+                    try? files.moveItem(at: outgoing, to: original)
+                    throw error
+                }
+            } else {
+                try? files.removeItem(at: outgoing)
+            }
         }
     }
 

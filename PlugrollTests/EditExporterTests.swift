@@ -305,4 +305,67 @@ final class EditExporterTests: XCTestCase {
         XCTAssertEqual(size.height.truncatingRemainder(dividingBy: 2), 0)
         XCTAssertEqual(size, CGSize(width: 16, height: 32))
     }
+
+    // MARK: - Trim only, and keeping the original
+
+    func testTrimOnlyEditsAreRecognised() {
+        var edits = Edits()
+        edits.trimStart = 1
+        edits.trimEnd = 3
+        edits.muted = true
+        XCTAssertTrue(edits.isTrimOnly)
+        edits.set(.contrast, to: 0.2)
+        XCTAssertFalse(edits.isTrimOnly)
+        var turned = Edits()
+        turned.quarterTurns = 1
+        XCTAssertFalse(turned.isTrimOnly)
+    }
+
+    func testTrimOnlyKeepsTheFramesAsTheyAre() async throws {
+        let source = try await writePortraitVideo()
+        var edits = Edits()
+        edits.trimStart = 0.5
+        edits.trimEnd = 1.5
+        let output = try await export(source, edits)
+
+        let asset = AVURLAsset(url: output)
+        let duration = try await asset.load(.duration).seconds
+        XCTAssertEqual(duration, 1, accuracy: 0.15, "trimmed to one second")
+        let size = try await VideoEditing.orientedSize(of: asset)
+        XCTAssertEqual(size, CGSize(width: 32, height: 64), "still portrait")
+        // Passed through, not re-encoded: the stored frames keep their size and turn.
+        let track = try await asset.loadTracks(withMediaType: .video).first!
+        let natural = try await track.load(.naturalSize)
+        XCTAssertEqual(natural, CGSize(width: 64, height: 32))
+    }
+
+    func testReplacingCanKeepTheOriginalInRecentlyDeleted() async throws {
+        let item = try writeJPEG(named: "IMG_0004.jpg")
+        let date = Date(timeIntervalSince1970: 1_500_000_000)
+        try FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: item.url.path)
+        let original = MediaItem(url: item.url, kind: .photo, modified: date, fileSize: item.fileSize)
+        let before = try Data(contentsOf: item.url)
+        let batch = try ExportService.makeBatchDirectory()
+        defer { ExportService.remove(batch) }
+
+        var edits = Edits()
+        edits.crop = CGRect(x: 0, y: 0, width: 0.5, height: 1)
+        let rendered = try await EditExporter.renderPhoto(original, edits: edits, autoFilters: [], in: batch)
+        let result = try await EditExporter.save(
+            rendered,
+            for: original,
+            to: .replaceOriginal,
+            options: .init(recentlyDeletedRoot: folder, keepsDate: true)
+        )
+
+        guard case .replaced(let updated) = result else { return XCTFail("expected a replace, got \(result)") }
+        XCTAssertEqual(updated.modified, date, "keeps its place in the grid")
+        let entries = try await RecentlyDeleted.entries(root: folder)
+        XCTAssertEqual(entries.map(\.originalPath), ["IMG_0004.jpg"])
+        let kept = try XCTUnwrap(RecentlyDeleted.item(for: entries[0], root: folder))
+        XCTAssertEqual(try Data(contentsOf: kept.url), before, "the untouched original waits in Recently Deleted")
+
+        let visible = try FileManager.default.contentsOfDirectory(atPath: folder.path).filter { !$0.hasPrefix(".") }
+        XCTAssertEqual(visible, ["IMG_0004.jpg"], "no other files show in the folder")
+    }
 }

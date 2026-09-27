@@ -71,6 +71,7 @@ struct FavouritesScreen: View {
         .mediaActionsOverlay(actions)
         .task(id: appState.reconnectCount) { await load() }
         .onChange(of: appState.sort) { _, _ in refreshDisplay() }
+        .onChange(of: appState.contentVersion) { _, _ in Task { await load() } }
         .fullScreenCover(item: $viewer) { session in
             MediaViewer(
                 items: session.items,
